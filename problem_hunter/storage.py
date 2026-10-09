@@ -44,6 +44,9 @@ class Store:
                 usage TEXT, cost REAL, cached INTEGER NOT NULL CHECK(cached IN (0,1)));
             CREATE INDEX IF NOT EXISTS requests_provider ON request_logs(provider);
         """)
+        columns = {row[1] for row in self.connection.execute("PRAGMA table_info(request_logs)")}
+        if "phase" not in columns:
+            self.connection.execute("ALTER TABLE request_logs ADD COLUMN phase TEXT NOT NULL DEFAULT 'unknown'")
         self.connection.commit()
 
     def __enter__(self):
@@ -150,7 +153,7 @@ class Store:
                 "ON CONFLICT(key) DO UPDATE SET payload=excluded.payload,expires_at=excluded.expires_at",
                 (key, json.dumps(value), time.time() + ttl))
 
-    def log_request(self, provider, url, status, usage=None, cost=None, cached=False):
+    def log_request(self, provider, url, status, usage=None, cost=None, cached=False, phase="unknown"):
         # Credentials and queries can contain keys or sensitive submitted text.
         parsed = urlsplit(url)
         host = parsed.hostname or ""
@@ -159,12 +162,18 @@ class Store:
         safe_url = urlunsplit((parsed.scheme, host, parsed.path, "", ""))
         with self.connection:
             self.connection.execute(
-                "INSERT INTO request_logs(created_at,provider,url,status,usage,cost,cached) "
-                "VALUES(?,?,?,?,?,?,?)", (time.time(), provider, safe_url, status,
-                    json.dumps(usage) if usage is not None else None, cost, int(cached)))
+                "INSERT INTO request_logs(created_at,provider,url,status,usage,cost,cached,phase) "
+                "VALUES(?,?,?,?,?,?,?,?)", (time.time(), provider, safe_url, status,
+                    json.dumps(usage) if usage is not None else None, cost, int(cached), phase))
 
     def usage_summary(self):
         providers = {}
+        phases = {}
+        for phase, count, hits, cost, priced in self.connection.execute(
+                "SELECT phase,COUNT(*),SUM(cached),SUM(CASE WHEN cached=0 THEN cost ELSE 0 END),"
+                "SUM(CASE WHEN cached=0 AND cost IS NOT NULL THEN 1 ELSE 0 END) FROM request_logs GROUP BY phase"):
+            phases[phase] = {"requests": count, "cache_hits": hits, "network_requests": count-hits,
+                             "estimated_cost": cost, "priced_requests": priced, "unpriced_requests": count-hits-priced}
         for provider, count, hits, cost, priced in self.connection.execute(
                 "SELECT provider,COUNT(*),SUM(cached),SUM(CASE WHEN cached=0 THEN cost ELSE 0 END),"
                 "SUM(CASE WHEN cached=0 AND cost IS NOT NULL THEN 1 ELSE 0 END) "
@@ -181,7 +190,7 @@ class Store:
                 for key, value in usage.items():
                     if isinstance(value, (int, float)) and not isinstance(value, bool):
                         totals[key] = totals.get(key, 0) + value
-        return {"providers": providers,
+        return {"providers": providers, "phases": phases,
                 "requests": sum(item["requests"] for item in providers.values()),
                 "cache_hits": sum(item["cache_hits"] for item in providers.values()),
                 "estimated_cost": sum(item["estimated_cost"] or 0 for item in providers.values()),

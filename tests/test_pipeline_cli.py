@@ -69,7 +69,7 @@ async def test_mocked_brave_to_jev_to_sqlite_contract(tmp_path):
 def test_cli_csv_export_and_repeat(tmp_path, capsys):
     csv = tmp_path / 'input.csv'
     csv.write_text('link,text,username\nhttps://example.com/a,I waste hours managing appointments manually.,alice\n')
-    options = ['--offline', '--db', str(tmp_path / 'store.db'), '--output', str(tmp_path / 'report')]
+    options = ['--offline', '--audit-yield', '--db', str(tmp_path / 'store.db'), '--output', str(tmp_path / 'report')]
     assert main(['import-csv', str(csv), *options]) == 0
     assert main(['import-csv', str(csv), *options]) == 0
     report = json.loads((tmp_path / 'report.json').read_text())
@@ -77,6 +77,10 @@ def test_cli_csv_export_and_repeat(tmp_path, capsys):
     assert len(report['sources']) == 1
     assert report['opportunities'][0]['evidence_strength'] == 'weak'
     assert report['problems'][0]['evidence']['mode'] == 'offline_heuristic'
+    audit = json.loads((tmp_path / 'report.yield.json').read_text())
+    assert audit['collection']['imported_content'] == 1
+    assert audit['pipeline']['funnel']['qualifying_problems'] == 1
+    assert audit['pipeline']['costs']['total_cost_usd'] == 0
     assert main(['usage', '--db', str(tmp_path / 'store.db')]) == 0
     assert 'ranked opportunities' in capsys.readouterr().out
 

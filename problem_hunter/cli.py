@@ -4,6 +4,7 @@ import asyncio
 import logging
 import os
 import sys
+import json
 import httpx
 from pathlib import Path
 from dotenv import load_dotenv
@@ -15,7 +16,7 @@ from .importing import import_csv
 from .intelligence import Evaluator, SynthesisClient
 from .pipeline import Pipeline
 from .research import Researcher
-from .reports import export_report
+from .reports import export_report, _rank_key
 from .storage import Store
 
 
@@ -46,6 +47,8 @@ def parser():
     common.add_argument('--max-cost', type=nonnegative, help='Estimated USD ceiling; requires configured provider prices')
     common.add_argument('--rate', type=nonnegative, default=1.0, help='Minimum seconds between requests per provider')
     common.add_argument('--verbose', action='store_true')
+    common.add_argument('--evaluation-rubric', default='production', help='production (default), or opt-in v3/custom grounded_v3 JSON')
+    common.add_argument('--audit-yield', action='store_true', help='Export a run-scoped source/complaint/group/cost funnel')
     sub = root.add_subparsers(dest='command', required=True)
     hunt = sub.add_parser('hunt', parents=[common], help='Discover complaints across Brave and Hacker News')
     hunt.add_argument('--topic', required=True)
@@ -75,9 +78,10 @@ def prices_from_env():
 
 
 async def run(args):
+    audit = None
     with Store(args.db) as store:
+        first_log = store.connection.execute('SELECT COALESCE(MAX(id),0) FROM request_logs').fetchone()[0]
         if args.command == 'usage':
-            import json
             print(json.dumps(store.usage_summary(), indent=2))
             return 0
         if args.command == 'bookmark':
@@ -99,9 +103,19 @@ async def run(args):
                 if not args.offline and os.environ.get('LLM_ENDPOINT'):
                     llm = SynthesisClient(http, os.environ['LLM_ENDPOINT'], os.environ.get('LLM_API_KEY', ''),
                                           os.environ.get('LLM_MODEL', ''))
-                evaluator = Evaluator(http, key=os.environ.get('TYPESAFE_API_KEY', ''),
-                                      model=os.environ.get('JEV_MODEL', 'jev-latest'), offline=args.offline, llm=llm)
-                researcher = Researcher(discovery, extractor, http=http, llm=llm)
+                if args.evaluation_rubric == 'production':
+                    evaluator = Evaluator(http, key=os.environ.get('TYPESAFE_API_KEY', ''),
+                                          model=os.environ.get('JEV_MODEL', 'jev-latest'), offline=args.offline, llm=llm)
+                else:
+                    if args.offline:
+                        raise ValueError('Experimental rubrics cannot use --offline; use production for the labeled heuristic demo.')
+                    from .triage import ExperimentalEvaluator
+                    evaluator = ExperimentalEvaluator(http, os.environ.get('TYPESAFE_API_KEY', ''),
+                                                      os.environ.get('JEV_MODEL', 'jev-latest'), args.evaluation_rubric)
+                    print('Experimental invoice-specific triage; scores are not market validation.', file=sys.stderr)
+                researcher = Researcher(discovery, extractor, http=http, llm=llm,
+                                        jev_key='' if args.offline else os.environ.get('TYPESAFE_API_KEY', ''),
+                                        jev_model=os.environ.get('JEV_MODEL', 'jev-latest'))
                 pipeline = Pipeline(store, evaluator, extractor, researcher, llm=llm)
                 print(f"Collecting input for {args.command}…", file=sys.stderr)
                 if args.command == 'hunt':
@@ -121,9 +135,28 @@ async def run(args):
                         mapping[field] = column
                     sources = import_csv(args.path, mapping=mapping or None)
                 print(f"Processing {len(sources)} source records…", file=sys.stderr)
-                opportunities = await pipeline.process(sources, enrich=args.command == 'hunt' and not args.no_fetch,
+                enrich = args.command == 'hunt' and not args.no_fetch
+                if args.audit_yield:
+                    from .discovery_audit import audit_sources
+                    audit = await audit_sources(sources, extractor, enrich=enrich)
+                    audit['metrics']['upstream_collection'] = discovery.hunt_summary
+                    if discovery.hunt_summary:
+                        audit['metrics']['upstream_raw_results'] = sum(e['raw_results'] for e in discovery.hunt_summary['search_events'])
+                    sources, enrich = audit['sources'], False
+                opportunities = await pipeline.process(sources, enrich=enrich,
                                                        research_top=args.research_top)
-        opportunities = sorted(opportunities, key=lambda o: (-o.score, o.id))[:args.top]
+        if audit is not None:
+            from .discovery_audit import summarize_yield
+            store.connection.row_factory = __import__('sqlite3').Row
+            logs = list(store.connection.execute('SELECT * FROM request_logs WHERE id>?', (first_log,)))
+            scoped_ids = {s.id for s in audit['sources']}
+            scoped_problems = [p for p in store.load_problems() if p.source_id in scoped_ids]
+            summary = summarize_yield(audit['sources'], scoped_problems, opportunities, logs)
+            path = Path(args.output + '.yield.json')
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(json.dumps({'collection': audit['metrics'], 'pipeline': summary}, indent=2) + '\n')
+            print(f'Yield audit: {path}')
+        opportunities = sorted(opportunities, key=_rank_key)[:args.top]
         sources = store.load_sources()
         formats = ['markdown', 'json'] if args.format == 'both' else [args.format]
         for format in formats:
@@ -132,7 +165,8 @@ async def run(args):
             print(f"Report: {path}")
         print(f"{len(opportunities)} ranked opportunities")
         for index, opportunity in enumerate(opportunities, 1):
-            print(f"{index:2}. {opportunity.score:5.1f}/100 [{opportunity.evidence_strength}] {opportunity.title} ({opportunity.id})")
+            priority = f'priority {opportunity.investigation_priority:.1f}; ' if opportunity.investigation_priority is not None else ''
+            print(f"{index:2}. {priority}opportunity {opportunity.score:5.1f}/100 [{opportunity.evidence_strength}] {opportunity.title} ({opportunity.id})")
     return 0
 
 

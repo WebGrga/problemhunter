@@ -57,3 +57,12 @@ These small runs verify integration behavior, not model calibration or market de
 
 Run the suite with `python -m pytest -q`. CI is configured for Python 3.10 and 3.12;
 remote CI results are separate from the local verification described here.
+
+## Grounded v3 milestone
+
+See [v3 results](jev-v3-results.md) for the 144-test verification, same-text
+three-variant comparison, cached replay, live source-yield audit, grouping/CSV
+parity and bounded solution research. V3 is experimental: retention improved,
+graded ranking worsened and the live discovery shortlist was noisy. Paid costs
+for this milestone used explicit configured prices; earlier unpriced records
+remain unknown rather than retroactively being labeled free.

@@ -86,7 +86,8 @@ def deduplicate(sources, existing=None):
             if source.url != existing.url and source.url not in existing.metadata["duplicate_urls"]:
                 existing.metadata["duplicate_urls"].append(source.url)
             if ((source.content_kind == "full_text" and existing.content_kind != "full_text")
-                    or (same_identity and id(existing) in prior_objects and source.content_kind == existing.content_kind and source.content != existing.content)):
+                    or (same_identity and id(existing) in prior_objects and source.content_kind == existing.content_kind
+                        and (source.content != existing.content or source.title != existing.title or source.author != existing.author))):
                 existing.content, existing.content_kind = source.content, source.content_kind
                 existing.title = source.title or existing.title
                 existing.author = existing.author or source.author
@@ -111,6 +112,8 @@ class Discovery:
         self.http, self.brave_key = http, brave_key
         self.semaphore = asyncio.Semaphore(concurrency)
         self.errors = []
+        self.search_events = []
+        self.hunt_summary = {}
 
     async def search(self, query, provider="brave"):
         async with self.semaphore:
@@ -120,20 +123,24 @@ class Discovery:
                 response = await self.http.request("GET", "https://api.search.brave.com/res/v1/web/search", provider="brave",
                     params={"q": query, "count": 20, "extra_snippets": "true"}, headers={"X-Subscription-Token": self.brave_key})
                 response.raise_for_status()
+                rows = response.json().get("web", {}).get("results", [])
+                self.search_events.append({"provider": "brave", "query": query, "raw_results": len(rows)})
                 return deduplicate([Source(url=row["url"], title=clean_html(row.get("title", "")),
                     content=clean_html(" ".join([row.get("description", ""), *row.get("extra_snippets", [])])),
                     source=urlsplit(row["url"]).hostname or "web", published_at=row.get("page_age"),
                     content_kind="snippet", metadata={"discovery_provider": "brave", "query": query})
-                    for row in response.json().get("web", {}).get("results", []) if row.get("url")])
+                    for row in rows if row.get("url")])
             if provider == "hn":
                 response = await self.http.request("GET", "https://hn.algolia.com/api/v1/search", provider="hn",
                     params={"query": query, "tags": "comment", "hitsPerPage": 20})
                 response.raise_for_status()
+                rows = response.json().get("hits", [])
+                self.search_events.append({"provider": "hn", "query": query, "raw_results": len(rows)})
                 return deduplicate([Source(url=f'https://news.ycombinator.com/item?id={row["objectID"]}',
                     title=row.get("story_title") or "Hacker News comment", content=clean_html(row.get("comment_text")),
                     source="Hacker News", author=row.get("author"), published_at=row.get("created_at"),
                     metadata={"discovery_provider": "hn", "query": query, "story_id": row.get("story_id")})
-                    for row in response.json().get("hits", []) if row.get("objectID") and row.get("comment_text")])
+                    for row in rows if row.get("objectID") and row.get("comment_text")])
             raise ValueError(f"Unknown search provider: {provider}")
 
     async def hunt(self, topic, queries=25, max_sources=100):
@@ -159,4 +166,9 @@ class Discovery:
             for provider in ('brave', 'hn'):
                 if index < len(pools[provider]):
                     mixed.append(pools[provider][index])
-        return deduplicate(mixed)[:max_sources]
+        unique = deduplicate(mixed)
+        self.hunt_summary = {"provider_candidates": {p: len(pool) for p, pool in pools.items()},
+                             "unique_before_limit": len(unique), "retained": min(len(unique), max_sources),
+                             "dropped_by_source_limit": max(0, len(unique)-max_sources),
+                             "search_events": list(self.search_events), "search_failures": list(self.errors)}
+        return unique[:max_sources]

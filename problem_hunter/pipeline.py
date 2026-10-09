@@ -5,6 +5,7 @@ import json
 from .discovery import deduplicate
 from .grouping import group_problems
 from .scoring import score_opportunity
+from .reports import _rank_key
 
 log = logging.getLogger(__name__)
 
@@ -18,6 +19,9 @@ class Pipeline:
         self.llm = llm
 
     async def process(self, sources, enrich=False, research_top=0):
+        http = getattr(self.evaluator, 'http', None)
+        if http is not None:
+            http.phase = 'collection'
         sources = deduplicate(sources)
         if enrich and self.extractor:
             import asyncio
@@ -33,9 +37,11 @@ class Pipeline:
         mode = 'offline' if self.evaluator.offline else self.evaluator.model
         synthesis = [getattr(self.llm, 'endpoint', ''), getattr(self.llm, 'model', '')] if self.llm else None
         def signature(source):
-            return hashlib.sha256(json.dumps([mode, source.content, source.author, source.source, synthesis, 'rubric-v3-grounded', getattr(self.evaluator, 'rubric_fingerprint', None)]).encode()).hexdigest()
+            return hashlib.sha256(json.dumps([mode, source.title, source.content, source.content_kind, source.author, source.source, synthesis, 'rubric-v3-grounded', getattr(self.evaluator, 'rubric_fingerprint', None)]).encode()).hexdigest()
         fresh = [s for s in sources if s.metadata.get('evaluation_signature') != signature(s)]
         log.info("Evaluating %s new or changed sources (%s unchanged)", len(fresh), len(sources)-len(fresh))
+        if http is not None:
+            http.phase = 'evaluation'
         problems = await self.evaluator.evaluate(fresh)
         self.store.replace_problems([s.id for s in fresh], problems)
         for source in fresh:
@@ -66,11 +72,13 @@ class Pipeline:
                 opportunity.research_status = old.research_status
         for opportunity in opportunities:
             score_opportunity(opportunity, all_problems, all_sources)
-        opportunities.sort(key=lambda o: (-o.score, o.id))
+        opportunities.sort(key=_rank_key)
         if self.researcher and research_top:
+            if http is not None:
+                http.phase = 'research'
             opportunities = await self.researcher.research(opportunities, top=research_top)
             for opportunity in opportunities:
                 score_opportunity(opportunity, all_problems, all_sources)
-            opportunities.sort(key=lambda o: (-o.score, o.id))
+            opportunities.sort(key=_rank_key)
         self.store.replace_opportunities(opportunities)
         return self.store.load_opportunities()

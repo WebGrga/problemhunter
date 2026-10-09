@@ -57,6 +57,14 @@ def group_problems(problems, sources):
             representative = group[0]
             other = tokens(representative.statement)
             overlap = len(terms & other) / max(1, len(terms | other))
+            family = problem.judgments.get('triage', {}).get('problem_family')
+            other_family = representative.judgments.get('triage', {}).get('problem_family')
+            if family or other_family:
+                if family == other_family and family is not None and representative.category == problem.category:
+                    match = group
+                    break
+                # Experimental workflow families must not merge with another family.
+                continue
             if representative.category == problem.category and (problem.statement.casefold() == representative.statement.casefold() or overlap >= 0.55 and len(terms & other) >= 2):
                 match = group
                 break

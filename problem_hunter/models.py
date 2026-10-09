@@ -45,6 +45,9 @@ class Opportunity:
     next_step: str = "Interview independent affected users and verify costs."
     research_status: str = "pending"
     bookmarked: bool = False
+    investigation_priority: Optional[float] = None
+    priority_breakdown: dict = field(default_factory=dict)
+    review_required: bool = False
 
 
 def serialize(value: Any) -> dict:

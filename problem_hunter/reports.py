@@ -3,6 +3,8 @@ from dataclasses import asdict
 import json
 from pathlib import Path
 
+from .evidence_checks import ground_payment
+
 
 def _text(value):
     if isinstance(value, dict):
@@ -12,19 +14,126 @@ def _text(value):
     return str(value)
 
 
+def _verified_quote(value, source):
+    return isinstance(value, str) and bool(value.strip()) and source is not None and value in source.content
+
+
+def _excerpt(value, limit=700):
+    text = str(value)
+    return text if len(text) <= limit else text[:limit] + ' … [truncated; complete text in JSON]'
+
+
+def _actionable_summary(item, source_map, problem_map):
+    cards, quotes, statuses, payments, cautions = [], [], [], [], list(item.unknowns)
+    dimensions = {}
+    for problem_id in item.problem_ids:
+        problem = problem_map.get(problem_id)
+        if problem is None:
+            cautions.append(f"Individual judgments unavailable: {problem_id}.")
+            continue
+        source = source_map.get(problem.source_id)
+        triage = problem.judgments.get("triage", {})
+        status = triage.get("need_status", "unknown")
+        statuses.append({"problem_id": problem_id, "source_id": problem.source_id, "status": status})
+        card = {"problem_id": problem_id, "source_id": problem.source_id,
+                "source_url": source.url if source else None, "complaint": problem.statement,
+                "need_status": status, "quotes": [],
+                "evaluation_mode": problem.judgments.get("evaluation_mode", problem.evidence.get("mode", "unknown"))}
+        for name in ("genuine", "first_hand", "workaround", "loss", "literal_loss", "willingness_to_pay"):
+            quote = problem.evidence.get(name)
+            if not isinstance(quote, str) or not quote.strip():
+                continue
+            if _verified_quote(quote, source):
+                entry = {"field": name, "quote": quote, "source_id": problem.source_id,
+                         "source_url": source.url, "problem_id": problem_id}
+                card["quotes"].append(entry)
+                if name != "willingness_to_pay":
+                    quotes.append(entry)
+            else:
+                cautions.append(f"{name}: excerpt could not be verified against the stored source ({problem.source_id}).")
+        payment = problem.evidence.get("verified_payment")
+        grounded_payment = (ground_payment(source.content, payment.get("signal"))
+                            if source and isinstance(payment, dict) else None)
+        if grounded_payment and grounded_payment["quote"] == payment.get("quote"):
+            entry = {"signal": payment["signal"], "quote": payment["quote"],
+                     "source_id": problem.source_id, "source_url": source.url}
+            if entry not in payments:
+                payments.append(entry)
+        elif triage.get("payment_signal", "unknown") != "unknown" or payment:
+            cautions.append(f"Payment signal is unverified for {problem.source_id}; willingness to pay remains unknown.")
+        for reason in triage.get("review_reasons", []):
+            cautions.append(_text(reason))
+        for contradiction in triage.get("contradictions", []):
+            cautions.append("Contradiction: " + _text(contradiction))
+        for name in triage.get("supported_dimensions", []):
+            value = triage.get("dimensions", {}).get(name)
+            if isinstance(value, (int, float)):
+                dimensions[name] = max(value, dimensions.get(name, value))
+        cards.append(card)
+    priority = getattr(item, "investigation_priority", None)
+    review = getattr(item, "review_required", False)
+    if priority is not None:
+        observed = ", ".join(f"{name} ({value:.2f})" for name, value in sorted(dimensions.items(), key=lambda pair: (-pair[1], pair[0])))
+        reason = f"Investigation priority {priority:.1f}/100; {'review required' if review else 'primary research candidate'}."
+        reason += f" Supported triage dimensions: {observed}." if observed else " Supported triage dimensions are unavailable."
+    else:
+        reason = f"Ranked by commercial opportunity score ({item.score:.1f}/100); investigation priority has not been assessed."
+    if any(entry["status"] == "historical_resolved" for entry in statuses):
+        cautions.append("Historical resolved complaints do not establish a current unmet need.")
+    if not statuses or any(entry["status"] == "unknown" for entry in statuses):
+        cautions.append("Current versus historical need is unknown for some evidence.")
+    cautions.append("Need status describes the source at publication: ongoing does not establish that the problem still exists today.")
+    if not payments:
+        cautions.append("No verified payment evidence; willingness to pay is unknown.")
+    refusals = [entry for entry in payments if entry["signal"] == "explicit_refusal"]
+    if refusals:
+        cautions.append("Explicit refusal to pay is evidence against payment intent for those speakers, not evidence of a spending buyer.")
+    next_steps = [item.next_step] if item.next_step else []
+    next_steps.append("Ask affected users whether the complaint still occurs and what resolved or changed it.")
+    if not payments:
+        next_steps.append("Ask affected users what they currently spend on solving this problem and verify any payment claim.")
+    elif refusals:
+        next_steps.append("Ask refusing users why they would not pay and which free or existing remedy they prefer.")
+    if not any(entry["field"] in ("loss", "literal_loss") for entry in quotes):
+        next_steps.append("Verify the time or money lost using a concrete recent example.")
+    # Prefer direct burden and experience over general problem excerpts.
+    quote_order = {"literal_loss": 0, "loss": 1, "first_hand": 2, "workaround": 3, "genuine": 4}
+    quotes.sort(key=lambda entry: quote_order[entry["field"]])
+    strongest = []
+    seen_quotes = set()
+    for entry in quotes:
+        identity = (entry["source_id"], entry["quote"])
+        if identity not in seen_quotes:
+            strongest.append(entry)
+            seen_quotes.add(identity)
+    return {"investigation_priority": priority, "commercial_opportunity_score": item.score,
+            "review_required": review, "ranking_reason": reason,
+            "strongest_problem_quotes": strongest[:3], "need_status": statuses,
+            "payment_evidence": payments, "cautions": list(dict.fromkeys(cautions)),
+            "next_step": " ".join(dict.fromkeys(next_steps)), "evidence_cards": cards}
+
+
+def _rank_key(item):
+    priority = getattr(item, "investigation_priority", None)
+    if priority is None:
+        return (1, 0, 0, -item.score, item.id)
+    return (0, int(getattr(item, "review_required", False)), -priority, -item.score, item.id)
+
+
 def export_report(opportunities, sources, path, format="markdown", problems=None):
     if format not in ("markdown", "json"):
         raise ValueError("Report format must be markdown or json")
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    opportunities = sorted(opportunities, key=lambda item: (-item.score, item.id))
+    opportunities = sorted(opportunities, key=_rank_key)
     source_map = {source.id: source for source in sources}
     problem_map = {problem.id: problem for problem in (problems or [])}
     referenced = {id for item in opportunities for id in item.source_ids}
     referenced_problems = {id for item in opportunities for id in item.problem_ids}
+    summaries = {item.id: _actionable_summary(item, source_map, problem_map) for item in opportunities}
     payload = {"schema_version": 1,
-        "score_note": "Opportunity score is distinct from evidence strength and does not prove market demand.",
-        "opportunities": [asdict(item) for item in opportunities],
+        "score_note": "Commercial opportunity score is an evidence lower bound, not validated market demand. Experimental investigation priority ranks research attention, not commercial viability. Model judgments are inferences, not proof.",
+        "opportunities": [{**asdict(item), "actionable_summary": summaries[item.id]} for item in opportunities],
         "sources": [asdict(source_map[id]) for id in sorted(referenced) if id in source_map],
         "problems": [asdict(problem_map[id]) for id in sorted(referenced_problems) if id in problem_map],
         "missing_source_ids": sorted(referenced - source_map.keys()),
@@ -35,14 +144,24 @@ def export_report(opportunities, sources, path, format="markdown", problems=None
     lines = ["# Problem Hunter opportunity report", "", payload["score_note"], ""]
     if not opportunities:
         lines += ["No qualifying opportunities were found.", ""]
+    else:
+        lines += ["Ranked research shortlist (primary candidates before review-required candidates):", ""]
+        for rank, item in enumerate(opportunities, 1):
+            priority = getattr(item, "investigation_priority", None)
+            priority_label = f"{priority:.1f}/100" if priority is not None else "not assessed"
+            lines += [f"- {rank}. {item.title} — investigation priority: {priority_label}; commercial opportunity score: {item.score:.1f}/100."]
+        lines += [""]
     for rank, item in enumerate(opportunities, 1):
-        lines += [f"## {rank}. {item.title}", "", item.description, "",
+        summary = summaries[item.id]
+        lines += [f"## {rank}. {item.title}", "", _excerpt(item.description), "",
             f"Opportunity ID: `{item.id}` | Category: {item.category}", "",
             f"Opportunity score: {item.score:.1f}/100 | Evidence strength: {item.evidence_strength}", "",
             f"Independent supporting sources: {item.independent_sources} | "
             f"Independent complainants: {item.independent_complainants}", "",
             f"Research status: {item.research_status} | Bookmarked: {'yes' if item.bookmarked else 'no'}", "",
-            "### Scoring breakdown and evidence coverage", ""]
+            "### Why ranked and current need", "", summary["ranking_reason"], ""]
+        lines += [f"- Need status for `{entry['source_id']}`: {entry['status']}" for entry in summary["need_status"]] or ["- Need status: unknown."]
+        lines += ["", "### Scoring breakdown and evidence coverage", ""]
         lines += ([f"- {key}: {_text(value)}" for key, value in item.score_breakdown.items()]
                   or ["- Scoring details unavailable; evidence coverage is unknown."])
         lines += ["", "### Original supporting sources", ""]
@@ -64,35 +183,43 @@ def export_report(opportunities, sources, path, format="markdown", problems=None
                 lines += [f"- [Duplicate/reposted original](<{original_url}>) — supporting copy of `{source_id}`; not an independent report."]
         if not item.source_ids:
             lines += ["- No supporting sources recorded."]
-        lines += ["", "### Individual judgments and literal evidence", ""]
+        lines += ["", "### Complaint evidence", ""]
         if not item.problem_ids:
             lines += ["- No individual problem judgments recorded."]
-        for problem_id in item.problem_ids:
-            problem = problem_map.get(problem_id)
-            if problem is None:
-                lines += [f"- `{problem_id}`: individual judgments unavailable."]
-                continue
-            mode = problem.judgments.get("evaluation_mode", problem.evidence.get("mode", "unknown"))
-            lines += [f"- `{problem_id}` ({problem.source_id}); evaluation mode: {mode}; {problem.statement}",
-                      f"- Model judgments (inferences): {_text(problem.judgments)}"]
-            source = source_map.get(problem.source_id)
-            excerpts = [(key, value) for key, value in problem.evidence.items()
-                        if key in {'genuine', 'first_hand', 'workaround', 'loss', 'willingness_to_pay'}
-                        and isinstance(value, str) and value]
-            for field, excerpt in excerpts:
-                if source and excerpt in source.content:
-                    lines += [f"- Literal {field} excerpt from `{problem.source_id}`: "
-                              + json.dumps(excerpt, ensure_ascii=False)]
-                else:
-                    lines += [f"- {field}: excerpt could not be verified against the stored source."]
-            if not excerpts:
-                lines += ["- No literal evidence excerpts recorded."]
+        for card in summary["evidence_cards"][:3]:
+            lines += [f"- Complaint summary (model inference): {_excerpt(card['complaint'])}",
+                      f"  Source: `{card['source_id']}`; problem: `{card['problem_id']}`; need status: {card['need_status']}; evaluation mode: {card['evaluation_mode']}."]
+            seen_quotes = set()
+            for entry in card["quotes"]:
+                if entry['quote'] in seen_quotes:
+                    continue
+                seen_quotes.add(entry['quote'])
+                label = "payment-related" if entry["field"] == "willingness_to_pay" else entry["field"]
+                lines += [f"- Literal {label} excerpt from `{entry['source_id']}`: " + json.dumps(_excerpt(entry["quote"]), ensure_ascii=False)]
+            if not card["quotes"]:
+                lines += ["- No verified literal evidence excerpts recorded."]
+        if len(summary["evidence_cards"]) > 3:
+            lines += [f"- {len(summary['evidence_cards']) - 3} additional judgments retained in JSON; all supporting sources are linked above."]
+        lines += ["", "### Payment evidence", ""]
+        for entry in summary["payment_evidence"]:
+            lines += [f"- Verified {entry['signal']} excerpt from [{entry['source_id']}](<{entry['source_url']}>): " + json.dumps(_excerpt(entry["quote"]), ensure_ascii=False)]
+        if not summary["payment_evidence"]:
+            lines += ["- Unknown: no verified payment evidence."]
+        lines += ["", "### Existing solutions and weaknesses", ""]
+        for solution in item.solutions:
+            lines += [f"- [{solution.get('name', 'Research source')}](<{solution.get('url', '')}>) — {solution.get('status', 'candidate')}; relevance: {solution.get('relevance', 'unverified')}."]
+            for field, label in (("functional_quote", "Functional source claim"), ("pricing_quote", "Pricing excerpt (context unverified)"), ("weakness_quote", "Weakness excerpt")):
+                if solution.get(field):
+                    lines += [f"  {label}: " + json.dumps(_excerpt(solution[field]), ensure_ascii=False)]
+        if not item.solutions:
+            lines += ["- No existing solutions verified."]
+        else:
+            lines += ["- Full source text, verification questions and raw judgments are retained in JSON."]
         for label, values, empty in (
-                ("Existing solutions and weaknesses", item.solutions, "No existing solutions verified."),
                 ("Potential fixes (hypotheses, requiring validation)", item.potential_fixes, "No fixes proposed."),
-                ("Important unknowns", item.unknowns, "No unknowns recorded; this does not establish validation.")):
+                ("Important unknowns and cautions", summary["cautions"], "No unknowns recorded; this does not establish validation.")):
             lines += ["", f"### {label}", ""]
             lines += [f"- {_text(value)}" for value in values] or [f"- {empty}"]
-        lines += ["", "### Recommended next validation step", "", item.next_step, ""]
+        lines += ["", "### Recommended next validation step", "", summary["next_step"], ""]
     path.write_text("\n".join(lines), encoding="utf-8")
     return path

@@ -7,6 +7,29 @@ WEIGHTS = {"pain_severity": 25, "frequency": 20, "willingness_to_pay": 20, "solu
 
 def score_opportunity(opportunity, problems, sources):
     selected = [p for p in problems if p.id in opportunity.problem_ids]
+    triages = [p.judgments['triage'] for p in selected if isinstance(p.judgments.get('triage'), dict)]
+    scored = [t for t in triages if isinstance(t.get('score'), (int, float))]
+    if scored:
+        # Average unique identified complainants, not repeated posts from one author.
+        by_author = {}
+        source_lookup = {s.id: s for s in sources}
+        for problem in selected:
+            triage = problem.judgments.get('triage', {})
+            source = source_lookup.get(problem.source_id)
+            if source and isinstance(triage.get('score'), (int, float)):
+                identity = (source.source, (source.author or source.id).casefold())
+                by_author.setdefault(identity, []).append(triage['score'])
+        opportunity.investigation_priority = round(sum(sum(v)/len(v) for v in by_author.values()) / len(by_author), 2) if by_author else None
+        opportunity.review_required = any(t.get('route') == 'review' for t in triages)
+        families = {t.get('problem_family') for t in triages if t.get('problem_family')}
+        opportunity.priority_breakdown = {'method': 'mean priority per observed author, then across authors; inference not demand',
+                                           'observed_author_groups': len(by_author),
+                                           'problem_family': next(iter(families)) if len(families) == 1 else None,
+                                           'record_scores': [t['score'] for t in scored]}
+        for t in triages:
+            for reason in t.get('review_reasons', []):
+                if reason not in opportunity.unknowns:
+                    opportunity.unknowns.append(reason)
     source_map = {s.id: s for s in sources}
     def valid_quote(problem, field):
         quote = problem.evidence.get(field)

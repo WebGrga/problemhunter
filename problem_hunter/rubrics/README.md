@@ -8,6 +8,7 @@ documentation copy.
 | `production.json` | Normal `hunt`, `inspect-url`, and `import-csv` evaluation |
 | `v1.json` | First experimental invoice investigation-priority rubric |
 | `v2.json` | New contained-evidence/soft-review experiment |
+| `v3.json` | Eight-question, literal-grounded invoice triage; opt-in CLI and benchmark |
 
 Each question has its actual `type`, `instructions`, and, for Score or Choice,
 `criteria`. Score list positions are levels 0, 1, 2, etc.; fractional results are
@@ -19,6 +20,7 @@ For a formatted, local-only view:
 
 ```sh
 python -m problem_hunter.benchmark questions --rubric v2
+python -m problem_hunter.benchmark questions --rubric v3
 python -m problem_hunter.benchmark questions --rubric v1
 python -m problem_hunter.benchmark questions --rubric production
 ```
@@ -49,6 +51,6 @@ Production rubric fingerprints are stored with each retained problem and include
 in pipeline evaluation signatures, so edits trigger reevaluation on the next run.
 Changing production question wording does **not** replace production score rules.
 
-Do not edit frozen v1/v2 after reviewing their results. Use a new version and fresh
+Do not edit frozen v1/v2/v3 after reviewing their results. Use a new version and fresh
 reference records. The current experiment is invoice-specific; changing topic
 requires editing its relevance question and constructing a matching labeled set.

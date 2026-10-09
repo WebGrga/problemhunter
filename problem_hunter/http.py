@@ -30,6 +30,7 @@ class HTTP:
         self.retries = retries
         self.requests = 0
         self.cost = 0.0
+        self.phase = None
         self.locks = {}
         self.last = {}
         self.custom_transport = transport is not None
@@ -44,13 +45,14 @@ class HTTP:
         await self.client.aclose()
 
     async def request(self, method, url, provider="web", params=None, json=None, headers=None):
+        phase = self.phase or ("evaluation" if provider == "jev" else "research" if provider == "llm" else "collection")
         # Cache identity includes a hash of credentials to isolate accounts, never raw keys.
         credential_scope = hashlib.sha256(str(sorted((headers or {}).items())).encode()).hexdigest()
         key = hashlib.sha256(__import__('json').dumps(
             [method, url, params, json, credential_scope], sort_keys=True).encode()).hexdigest()
         cached = self.store.cache_get(key)
         if cached:
-            self.store.log_request(provider, url.split('?')[0], cached['status'], cached=True)
+            self.store.log_request(provider, url.split('?')[0], cached['status'], cached=True, phase=phase)
             return httpx.Response(cached['status'], headers=cached['headers'], content=cached['body'],
                                   request=httpx.Request(method, url))
         async with self.semaphore:
@@ -115,7 +117,7 @@ class HTTP:
                         cost = usage.get('input_tokens', 0) * price / 1000000
                         self.cost += cost - reserve
                     self.store.log_request(provider, url.split('?')[0], result.status_code, usage=usage,
-                                           cost=cost if price is not None else None)
+                                           cost=cost if price is not None else 0 if provider not in {'brave', 'jev', 'llm'} else None, phase=phase)
                     if result.status_code in {429, 500, 502, 503, 504, 529} and attempt < self.retries:
                         retry = result.headers.get('retry-after', '')
                         try:
@@ -135,7 +137,7 @@ class HTTP:
                     return result
                 except httpx.TransportError:
                     self.store.log_request(provider, url.split('?')[0], 0,
-                                           cost=reserve if price is not None else None)
+                                           cost=reserve if price is not None else 0 if provider not in {'brave', 'jev', 'llm'} else None, phase=phase)
                     if attempt == self.retries:
                         raise
                     await asyncio.sleep(2 ** attempt)

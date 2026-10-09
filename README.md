@@ -56,7 +56,8 @@ zero unchanged sources. All evidence remains weak in this demonstration.
 The actual JEV questions are now readable/editable files:
 [production](problem_hunter/rubrics/production.json),
 [experiment v1](problem_hunter/rubrics/v1.json), and
-[experiment v2](problem_hunter/rubrics/v2.json).
+[experiment v2](problem_hunter/rubrics/v2.json), and
+[experiment v3](problem_hunter/rubrics/v3.json).
 See [question-file instructions](problem_hunter/rubrics/README.md).
 Preview any set without API calls:
 
@@ -66,6 +67,24 @@ python -m problem_hunter.benchmark questions --rubric v2
 
 Every benchmark report saves the exact question/routing snapshots and hashes.
 Use a new version for edits; do not tune frozen questions against their test results.
+
+V3 is an opt-in, invoice-specific experiment, not the default evaluator:
+
+```sh
+python main.py hunt --topic 'freelancer invoicing' --queries 6 --max-sources 24 \
+  --evaluation-rubric v3 --audit-yield --research-top 2
+python -m problem_hunter.benchmark questions --rubric v3
+```
+
+It uses eight typed questions, literal loss/payment checks and contradiction review.
+Reports separate investigation priority from the commercial evidence lower bound.
+`--audit-yield` writes `.yield.json` with extraction, attribution, retained complaints,
+recurring groups and run-scoped collection/evaluation/research costs. Unknown prices
+remain unknown; configure the price variables in `.env.example` for estimates and
+`--max-cost`. Replays are not new acquisition: cache savings must not be mistaken
+for original-run costs. Research uses bounded Brave searches and JEV-selected
+literal provider excerpts when JEV is configured; prices remain unverified context.
+See [v3 test results and limitations](docs/jev-v3-results.md).
 
 The official [TypeSafe API](https://docs.typesafe.ai/api) accepts `state`, `model`
 and a map of typed questions at `POST /v1/systemone`, authenticated with a bearer
