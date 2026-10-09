@@ -81,6 +81,7 @@ def test_cli_csv_export_and_repeat(tmp_path, capsys):
 
 
 def test_cli_missing_credentials_and_invalid_mapping(tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
     monkeypatch.delenv('TYPESAFE_API_KEY', raising=False)
     csv = tmp_path / 'input.csv'
     csv.write_text('text\nProblem\n')
@@ -88,6 +89,17 @@ def test_cli_missing_credentials_and_invalid_mapping(tmp_path, monkeypatch, caps
     assert 'TYPESAFE_API_KEY' in capsys.readouterr().err
     assert main(['import-csv', str(csv), '--offline', '--map', 'broken', '--db', str(tmp_path / 'store.db')]) == 1
     assert '--map' in capsys.readouterr().err
+
+
+def test_dotenv_loads_without_overriding_shell(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / '.env').write_text('TYPESAFE_API_KEY=fixture-file-key\nBRAVE_SEARCH_API_KEY=fixture-brave-key\n')
+    monkeypatch.setenv('TYPESAFE_API_KEY', 'fixture-shell-key')
+    monkeypatch.delenv('BRAVE_SEARCH_API_KEY', raising=False)
+    assert main(['usage', '--db', str(tmp_path / 'store.db')]) == 0
+    import os
+    assert os.environ['TYPESAFE_API_KEY'] == 'fixture-shell-key'
+    assert os.environ['BRAVE_SEARCH_API_KEY'] == 'fixture-brave-key'
 
 
 @pytest.mark.asyncio

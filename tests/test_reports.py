@@ -56,7 +56,7 @@ def test_reports_include_judgments_verified_quotes_and_duplicate_links(tmp_path)
     opportunities[0].problem_ids = ["problem-a"]
     problem = Problem("a", "Complaint A", "restaurants", id="problem-a",
         judgments={"evaluation_mode": "offline_heuristic", "severity": 3},
-        evidence={"mode": "offline_heuristic", "loss": "Complaint A", "payment": "invented"})
+        evidence={"mode": "offline_heuristic", "loss": "Complaint A", "willingness_to_pay": "invented", "evaluation_model": "jev-1.13.0"})
     json_path = export_report(opportunities, sources, tmp_path / "report.json", "json", [problem])
     payload = json.loads(json_path.read_text())
     assert payload["problems"][0]["judgments"]["severity"] == 3
@@ -66,6 +66,7 @@ def test_reports_include_judgments_verified_quotes_and_duplicate_links(tmp_path)
     assert "not an independent report" in report
     assert "evaluation mode: offline_heuristic" in report
     assert 'Literal loss excerpt from `a`: "Complaint A"' in report
-    assert "payment: excerpt could not be verified" in report
+    assert "willingness_to_pay: excerpt could not be verified" in report
+    assert "evaluation_model: excerpt could not be verified" not in report
     assert '"invented"' not in report
 

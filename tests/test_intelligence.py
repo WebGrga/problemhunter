@@ -28,7 +28,7 @@ def answers(count=1):
 async def test_jev_batches_and_parses_fractional_score():
     http = HTTP(answers(2))
     sources = [Source(f"https://example.com/{i}", "Appointment problem", "I waste hours manually managing appointments.", id=str(i)) for i in range(2)]
-    result = await Evaluator(http, key="fixture").evaluate(sources)
+    result = await Evaluator(http, key="fixture", batch_size=2).evaluate(sources)
     assert len(http.requests) == 1
     payload = http.requests[0][2]["json"]
     assert len(payload["questions"]) == 14
@@ -37,6 +37,18 @@ async def test_jev_batches_and_parses_fractional_score():
     assert result[0].evidence["loss"] in sources[0].content
     # Model confidence that payment exists never creates a payment quote.
     assert result[0].evidence["willingness_to_pay"] is None
+
+
+@pytest.mark.asyncio
+async def test_default_evaluation_isolates_documents_but_batches_questions():
+    http = HTTP(answers())
+    sources = [Source(f'https://example.com/{i}', 'p', 'I waste hours manually managing bookings.', id=str(i)) for i in range(2)]
+    await Evaluator(http, key='fixture').evaluate(sources)
+    assert len(http.requests) == 2
+    for method, url, kwargs in http.requests:
+        assert list(kwargs['json']['state']) == ['record_0']
+        assert len(kwargs['json']['questions']) == 7
+        assert all('record_0.content' in q['instructions'] for q in kwargs['json']['questions'].values())
 
 
 @pytest.mark.asyncio
@@ -81,6 +93,18 @@ async def test_llm_invented_quote_is_rejected():
 
 def test_explicit_evidence_does_not_infer_payment_from_cost():
     assert explicit_evidence("This costs $500 and is frustrating.")["willingness_to_pay"] is None
+
+
+def test_normal_working_hours_are_not_explicit_loss():
+    assert explicit_evidence('I contract for up to 25 hours per week.')['loss'] is None
+    assert explicit_evidence('We lose hours manually checking stock every day.')['loss'] is not None
+
+
+@pytest.mark.asyncio
+async def test_statement_prefers_real_complaint_over_ordinary_hours():
+    source = Source('https://example.com', 'Invoices', 'I contract for up to 25 hours per week. The owner asked about missing invoices which I have inexplicably not sent.', id='a')
+    problems = await Evaluator(HTTP(answers()), key='fixture').evaluate([source])
+    assert problems[0].statement.startswith('The owner asked')
 
 
 @pytest.mark.asyncio

@@ -6,7 +6,9 @@ Problem Hunter is a Python CLI with one processing path:
    `importing` maps scraped CSV columns into the same `Source` records.
 2. `pipeline` normalizes and deduplicates the current and persisted corpus.
 3. `intelligence` asks JEV typed questions in bounded batches and retains raw
-   answers, model identifiers, literal excerpts, and usage. Optional synthesis
+   answers, model identifiers, literal excerpts, and usage. Seven questions are
+   batched per source; unrelated documents are isolated following live verification.
+   Optional synthesis
    extracts a clearer statement and groups semantic equivalents.
 4. `grouping` separates observations from identifiable complainants;
    `research` searches existing alternatives and distinguishes source excerpts,

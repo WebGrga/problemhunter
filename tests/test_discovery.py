@@ -55,3 +55,14 @@ async def test_hunt_partial_failures():
     discovery = Discovery(HTTP())
     assert await discovery.hunt("restaurants", 1) == []
     assert len(discovery.errors) == 3
+
+
+@pytest.mark.asyncio
+async def test_small_limit_retains_both_search_providers():
+    discovery = Discovery(None, 'fixture')
+    async def search(query, provider='brave'):
+        return [Source(f'https://example.com/{provider}/{i}', provider, f'{provider} report {i}',
+                       metadata={'discovery_provider': provider}) for i in range(5)]
+    discovery.search = search
+    sources = await discovery.hunt('restaurants', queries=1, max_sources=4)
+    assert [s.metadata['discovery_provider'] for s in sources] == ['brave', 'hn', 'brave', 'hn']

@@ -77,7 +77,8 @@ def export_report(opportunities, sources, path, format="markdown", problems=None
                       f"- Model judgments (inferences): {_text(problem.judgments)}"]
             source = source_map.get(problem.source_id)
             excerpts = [(key, value) for key, value in problem.evidence.items()
-                        if key not in {"mode", "content_kind"} and isinstance(value, str) and value]
+                        if key in {'genuine', 'first_hand', 'workaround', 'loss', 'willingness_to_pay'}
+                        and isinstance(value, str) and value]
             for field, excerpt in excerpts:
                 if source and excerpt in source.content:
                     lines += [f"- Literal {field} excerpt from `{problem.source_id}`: "

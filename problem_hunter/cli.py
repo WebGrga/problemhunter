@@ -6,6 +6,7 @@ import os
 import sys
 import httpx
 from pathlib import Path
+from dotenv import load_dotenv
 
 from .discovery import Discovery
 from .extraction import Extractor
@@ -136,6 +137,7 @@ async def run(args):
 
 
 def main(argv=None):
+    load_dotenv(Path.cwd() / '.env', override=False)
     args = parser().parse_args(argv)
     logging.basicConfig(level=logging.DEBUG if args.verbose else logging.INFO, format='%(levelname)s: %(message)s')
     # HTTP libraries can expose request query strings; keep third party logs quiet.

@@ -17,7 +17,8 @@ export BRAVE_SEARCH_API_KEY='your-key'
 export TYPESAFE_API_KEY='your-key'
 ```
 
-The CLI reads environment variables, not `.env` automatically. See [.env.example](.env.example).
+The CLI loads `.env` from the current directory; existing shell variables take precedence.
+Copy [.env.example](.env.example) to `.env` and fill in your keys, or export them as above.
 Never commit credentials. Brave is required for hunts and solution searches; JEV is
 required for normal evaluation. CSV and URL analysis need only JEV. HN needs no key.
 
@@ -54,8 +55,9 @@ zero unchanged sources. All evidence remains weak in this demonstration.
 
 The official [TypeSafe API](https://docs.typesafe.ai/api) accepts `state`, `model`
 and a map of typed questions at `POST /v1/systemone`, authenticated with a bearer
-token. This application batches multiple items in an indexed state and all seven
-judgments per item into one supported request. There is no invented batch endpoint.
+token. This application batches all seven judgments for one source into a supported
+request. Each source has its own state: live testing found that mixing unrelated
+documents can leak payment evidence across them. There is no invented batch endpoint.
 Noul answers measure probability, Score answers use rubric indices, and Choice
 answers identify categories. Raw responses, actual model and batch usage are retained.
 

@@ -150,4 +150,13 @@ class Discovery:
                 logger.warning("Search failed for %s: %s", provider, type(exc).__name__)
                 return []
         batches = await asyncio.gather(*(run(q, p) for q, p in tasks))
-        return deduplicate([source for batch in batches for source in batch])[:max_sources]
+        # Limit after interleaving providers; a small limit must not discard all
+        # attributed discussion comments behind the first Brave result page.
+        pools = {provider: deduplicate([source for (query, p), batch in zip(tasks, batches)
+                                        if p == provider for source in batch]) for provider in ('brave', 'hn')}
+        mixed = []
+        for index in range(max((len(pool) for pool in pools.values()), default=0)):
+            for provider in ('brave', 'hn'):
+                if index < len(pools[provider]):
+                    mixed.append(pools[provider][index])
+        return deduplicate(mixed)[:max_sources]
