@@ -8,3 +8,5 @@ __pycache__/
 reports/
 *.egg-info/
 .ruff_cache/
+build/
+dist/

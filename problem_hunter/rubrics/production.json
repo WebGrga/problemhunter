@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "version": "production-v1",
+  "description": "Production questions; current unresolved problem gate and evidence-supported opportunity scoring remain unchanged.",
+  "questions": {
+    "genuine": {
+      "type": "noul",
+      "instructions": "Does this text report a concrete, current unresolved problem experienced by an affected person? Answer no for resumes, recruitment, product marketing, general advice, hypothetical needs, or resolved achievements. Promotional mentions of problems alone do not qualify."
+    },
+    "first_hand": {
+      "type": "noul",
+      "instructions": "Does the speaker explicitly report their own experience?"
+    },
+    "workaround": {
+      "type": "noul",
+      "instructions": "Is an existing workaround explicitly described?"
+    },
+    "loss": {
+      "type": "noul",
+      "instructions": "Is time or money loss explicitly described?"
+    },
+    "willingness_to_pay": {
+      "type": "noul",
+      "instructions": "Does the speaker explicitly say they pay or would pay to solve this problem? Do not infer willingness from frustration."
+    },
+    "severity": {
+      "type": "score",
+      "instructions": "How severe is the explicitly described impact?",
+      "criteria": [
+        "No material impact described",
+        "Minor inconvenience",
+        "Recurring disruption",
+        "Substantial time or money loss",
+        "Critical livelihood, safety or business impact"
+      ]
+    },
+    "category": {
+      "type": "choice",
+      "instructions": "Which industry best matches this problem?",
+      "criteria": {
+        "hospitality": "Restaurants, hotels, catering and food service",
+        "healthcare": "Health and care services",
+        "retail": "Shopping and retail",
+        "education": "Schools, learning and training",
+        "finance": "Financial services and accounting",
+        "logistics": "Transport, shipping and supply chains",
+        "technology": "Software and technical services",
+        "services": "Professional services and small business administration",
+        "household": "Personal, family and household problems",
+        "other": "Other industries"
+      }
+    }
+  }
+}

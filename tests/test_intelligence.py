@@ -3,6 +3,7 @@ import pytest
 
 from problem_hunter.intelligence import Evaluator, SynthesisClient, FIELDS, explicit_evidence
 from problem_hunter.models import Source
+from problem_hunter.rubric import load_rubric, rubric_hash
 
 
 class HTTP:
@@ -49,6 +50,20 @@ async def test_default_evaluation_isolates_documents_but_batches_questions():
         assert list(kwargs['json']['state']) == ['record_0']
         assert len(kwargs['json']['questions']) == 7
         assert all('record_0.content' in q['instructions'] for q in kwargs['json']['questions'].values())
+
+
+@pytest.mark.asyncio
+async def test_production_file_snapshot_drives_actual_request_and_evidence():
+    rubric = load_rubric('production')
+    rubric['questions']['genuine']['instructions'] = 'Custom readable genuine question'
+    http = HTTP(answers())
+    evaluator = Evaluator(http, key='fixture', rubric=rubric)
+    rubric['questions']['genuine']['instructions'] = 'Changed after construction'
+    result = await evaluator.evaluate([Source('https://example.com', 'p', 'I waste hours manually managing bookings.')])
+    request = http.requests[0][2]['json']
+    assert request['questions']['0_genuine']['instructions'].endswith('Custom readable genuine question')
+    assert result[0].evidence['evaluation_rubric_sha256'] == rubric_hash(evaluator.rubric)
+    assert result[0].evidence['evaluation_rubric']['questions']['genuine']['instructions'] == 'Custom readable genuine question'
 
 
 @pytest.mark.asyncio

@@ -9,6 +9,7 @@ from problem_hunter.intelligence import Evaluator, FIELDS
 from problem_hunter.models import Source
 from problem_hunter.pipeline import Pipeline
 from problem_hunter.storage import Store
+from problem_hunter.rubric import load_rubric
 
 
 @pytest.mark.asyncio
@@ -112,3 +113,25 @@ async def test_updated_content_is_reevaluated_and_rejected_problem_removed(tmp_p
         assert result == []
         assert store.load_problems() == []
         assert len(store.load_sources()) == 1
+
+
+@pytest.mark.asyncio
+async def test_changed_question_file_fingerprint_triggers_reevaluation(tmp_path):
+    class CountingEvaluator(Evaluator):
+        evaluated = 0
+        async def evaluate(self, sources):
+            self.evaluated += len(sources)
+            return await super().evaluate(sources)
+    source = Source('https://example.com/a', 'p', 'I waste hours manually managing appointments.')
+    with Store(tmp_path / 'store.db') as store:
+        first = CountingEvaluator(None, offline=True)
+        pipeline = Pipeline(store, first)
+        await pipeline.process([source])
+        await pipeline.process([source])
+        assert first.evaluated == 1
+        rubric = load_rubric('production')
+        rubric['questions']['genuine']['instructions'] += ' A revised question.'
+        changed = CountingEvaluator(None, offline=True, rubric=rubric)
+        await Pipeline(store, changed).process([source])
+        assert changed.evaluated == 1
+        assert store.load_problems()[0].evidence['evaluation_rubric_sha256'] == changed.rubric_fingerprint

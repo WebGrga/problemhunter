@@ -53,6 +53,20 @@ zero unchanged sources. All evidence remains weak in this demonstration.
 
 ## Evaluation and deeper synthesis
 
+The actual JEV questions are now readable/editable files:
+[production](problem_hunter/rubrics/production.json),
+[experiment v1](problem_hunter/rubrics/v1.json), and
+[experiment v2](problem_hunter/rubrics/v2.json).
+See [question-file instructions](problem_hunter/rubrics/README.md).
+Preview any set without API calls:
+
+```sh
+python -m problem_hunter.benchmark questions --rubric v2
+```
+
+Every benchmark report saves the exact question/routing snapshots and hashes.
+Use a new version for edits; do not tune frozen questions against their test results.
+
 The official [TypeSafe API](https://docs.typesafe.ai/api) accepts `state`, `model`
 and a map of typed questions at `POST /v1/systemone`, authenticated with a bearer
 token. This application batches all seven judgments for one source into a supported
@@ -168,3 +182,18 @@ use a different output prefix to preserve the original paid-run accounting.
 The current price assumption is $0.042 per million JEV input tokens; configure
 `JEV_COST_PER_MILLION_INPUT_TOKENS` for your plan. Review the official price before
 a new run. Raw data, reports, SQLite databases and credentials stay Git-ignored.
+
+For the fresh-sample v1-versus-v2 experiment (not production scoring):
+
+```sh
+python -m problem_hunter.benchmark compare reports/jev-benchmark-v2/reference.json \
+  --rubric v2 --reference-rubric v1 --db reports/jev-benchmark-v2/evaluation.db \
+  --output reports/jev-benchmark-v2/comparison --max-requests 90 --max-cost 0.05
+```
+
+Its [pre-output protocol](docs/jev-v2-protocol.md) uses new complete Stack Exchange
+questions, independently labeled by another assistant engineer. The collector
+`scripts/collect_reference_v2.py` retrieves full bodies through the public API and
+can freeze separately supplied annotation JSON; it does not fabricate labels or
+use JEV to label its own benchmark. The frozen artifacts remain local.
+See [fresh test results and remaining failures](docs/jev-v2-results.md).

@@ -18,6 +18,9 @@ problem-hunter = "problem_hunter.cli:main"
 [tool.setuptools.packages.find]
 include = ["problem_hunter*"]
 
+[tool.setuptools.package-data]
+problem_hunter = ["rubrics/*.json"]
+
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]

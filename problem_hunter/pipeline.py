@@ -33,7 +33,7 @@ class Pipeline:
         mode = 'offline' if self.evaluator.offline else self.evaluator.model
         synthesis = [getattr(self.llm, 'endpoint', ''), getattr(self.llm, 'model', '')] if self.llm else None
         def signature(source):
-            return hashlib.sha256(json.dumps([mode, source.content, source.author, source.source, synthesis, 'rubric-v3-grounded']).encode()).hexdigest()
+            return hashlib.sha256(json.dumps([mode, source.content, source.author, source.source, synthesis, 'rubric-v3-grounded', getattr(self.evaluator, 'rubric_fingerprint', None)]).encode()).hexdigest()
         fresh = [s for s in sources if s.metadata.get('evaluation_signature') != signature(s)]
         log.info("Evaluating %s new or changed sources (%s unchanged)", len(fresh), len(sources)-len(fresh))
         problems = await self.evaluator.evaluate(fresh)
