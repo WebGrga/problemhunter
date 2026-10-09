@@ -78,6 +78,11 @@ similarity and solution results remain candidates requiring verification.
 
 ## Scoring and evidence
 
+The production rubric is intentionally separate from the new experimental JEV
+comparison. A live 40-comment experiment improved triage with concrete Score
+questions but exposed hard-gate false negatives. See
+[results and limitations](docs/jev-evaluation-results.md) before interpreting scores.
+
 The score is an evidence-supported lower bound out of 100:
 
 | Criterion | Maximum points | Evidence used |
@@ -134,3 +139,32 @@ actual workflows, losses, budgets and existing alternatives before building a so
 
 See [architecture and boundaries](docs/architecture.md). No dashboard or browser
 extension is included.
+
+## Reproduce the JEV rubric experiment
+
+The benchmark does not modify production evaluations or opportunity scoring.
+Its revised score is complaint investigation priority, not business viability.
+`TYPESAFE_API_KEY` is the only credential needed; HN collection needs no key.
+
+```sh
+python scripts/collect_reference.py
+python scripts/collect_reference.py --freeze
+python -m problem_hunter.benchmark compare reports/jev-benchmark/reference.json \
+  --db reports/jev-benchmark/evaluation.db --output reports/jev-benchmark/comparison \
+  --max-requests 90 --max-cost 0.05
+```
+
+The freeze step applies the reviewed manifest to the captured candidate pool. HN
+search results may change and omit manifest IDs; preserve the original reference
+file rather than assuming a fresh search reproduces it. For new topics, supply
+your own complete, attributed record JSON with pre-output annotations (`relevance`,
+integer `priority` 0–3, `reason`, and `split`: `development` or `holdout`). Never let
+the model being evaluated generate its own reference labels. The wrapper accepts
+`records` with dataset metadata; inspect the collector for the schema.
+
+Reports retain both rankings, errors, source links, supported dimensions, raw
+answers, usage and input/rubric fingerprints. Repeated calls use the 24-hour cache;
+use a different output prefix to preserve the original paid-run accounting.
+The current price assumption is $0.042 per million JEV input tokens; configure
+`JEV_COST_PER_MILLION_INPUT_TOKENS` for your plan. Review the official price before
+a new run. Raw data, reports, SQLite databases and credentials stay Git-ignored.

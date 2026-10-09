@@ -106,7 +106,8 @@ class HTTP:
                     usage = None
                     if provider in {'jev', 'llm'} and result.is_success:
                         try:
-                            usage = result.json().get('usage')
+                            payload = result.json()
+                            usage = payload.get('usage') if isinstance(payload, dict) else None
                         except ValueError:
                             pass
                     cost = reserve

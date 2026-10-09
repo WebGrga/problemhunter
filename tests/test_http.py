@@ -7,6 +7,13 @@ from problem_hunter.storage import Store
 
 
 @pytest.mark.asyncio
+async def test_nonobject_api_json_reaches_provider_schema_validation():
+    with Store(':memory:') as store:
+        async with HTTP(store, rate=0, transport=httpx.MockTransport(lambda r: httpx.Response(200, json=[]))) as client:
+            assert (await client.request('POST', 'https://example.com', provider='jev')).json() == []
+
+
+@pytest.mark.asyncio
 async def test_compressed_responses_are_decoded_once_and_cached():
     def handler(request):
         return httpx.Response(200, headers={'Content-Encoding': 'gzip', 'Content-Type': 'text/plain'},
