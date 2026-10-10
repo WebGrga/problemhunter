@@ -3,7 +3,8 @@
 ## Latest continuation
 
 Collection provenance, actor/task routing and fixed-subject comparison repairs
-are implemented on `fix/research-usefulness`. Read
+are merged into main through PR #3 (`f9be45b`), with Python 3.10/3.12 CI passing.
+The merged feature branch is removed. Read
 [USEFULNESS_IMPROVEMENTS_2026-10-10.md](USEFULNESS_IMPROVEMENTS_2026-10-10.md).
 The comparison is materially more informative; fresh acquisition still produces
 mostly inaccessible snippets and no primary candidates. Next improve permitted

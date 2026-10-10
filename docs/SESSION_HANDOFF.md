@@ -3,7 +3,10 @@
 ## Latest continuation: usefulness repairs
 
 See [USEFULNESS_IMPROVEMENTS_2026-10-10.md](USEFULNESS_IMPROVEMENTS_2026-10-10.md).
-Branch `fix/research-usefulness` adds collection date/discussion controls,
+PR #3 merged into main at `f9be45baef7a2ab8dba17a71bb3539c137a46fa7` after CI
+passed on Python 3.10/3.12 for head `b5f7bb38ee0986fd7fa79818b3e4c8d262a6f93d`.
+Local main is synchronized; the merged feature branch was removed locally and
+remotely. The changes add collection date/discussion controls,
 fragment/publication provenance repairs, opt-in general-v5 actor/task representation
 and source-bound landscape v2. 195 tests pass. Diagnostic replay rejects the known
 positive review, buyer/seller and interview-feedback errors. Five new source samples

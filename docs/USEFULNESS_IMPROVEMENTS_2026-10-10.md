@@ -128,7 +128,8 @@ subject check removed two such misattributed function claims in this run.
 
 ## Verification, cost and next priority
 
-195 local tests pass. New tests exercise publication/search conflicts, incomplete
+195 local tests pass; PR #3 passed CI on Python 3.10 and 3.12 and merged into main
+at `f9be45b`. New tests exercise publication/search conflicts, incomplete
 cards, main-body selection, pre-request date validation, actor/task exclusion,
 speaker-linked workarounds, late pricing, multiple fixed subjects and the rule that
 partial task fit cannot establish full satisfaction. Mock tests check behavior,

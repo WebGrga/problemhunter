@@ -90,5 +90,5 @@ identities by themselves. Six pages remain the default bound; named follow-up is
 bounded to ten. More requests per page mean the cost ceiling matters.
 
 Legacy v1 evidence parser/tests remain available for regression comparison. The
-historical description below refers to that first implementation. See the fresh
+historical description above refers to that first implementation. See the fresh
 usefulness reviews for live results; passing mock tests do not establish accuracy.
