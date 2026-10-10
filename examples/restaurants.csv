@@ -1,0 +1,5 @@
+url,title,content,author,source
+https://example.org/demo/alice,Manual reservations,I waste hours managing restaurant appointments manually. I would pay for a simpler way to handle reservations.,alice,Demo fixtures
+https://example.org/demo/bob,Reservation paperwork,We waste hours managing restaurant bookings manually. We already pay someone to handle reservations.,bob,Demo fixtures
+https://example.org/demo/alice-copy,Copied complaint,I waste hours managing restaurant appointments manually. I would pay for a simpler way to handle reservations.,alice,Demo fixtures
+https://example.org/demo/carla,Stock counts,Our restaurant inventory spreadsheet is frustrating. We lose hours manually checking stock every day.,carla,Demo fixtures
