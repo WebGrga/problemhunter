@@ -58,7 +58,7 @@ async def run_research(tmp_path, item, sources, specs, mutate=None, key='fixture
     with Store(tmp_path / 'test.db') as store:
         async with HTTP(store, rate=0, transport=httpx.MockTransport(handler_for(specs, mutate))) as http:
             http.phase = 'research'
-            await Researcher(Discovery(sources), Extractor(), http=http, jev_key=key).research([item])
+            await Researcher(Discovery(sources), Extractor(), http=http, jev_key=key, landscape_version='v1').research([item])
         store.save_opportunities([item])
         assert store.load_opportunities()[0].solution_landscape == item.solution_landscape
         return store.usage_summary()

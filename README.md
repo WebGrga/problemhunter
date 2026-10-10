@@ -18,15 +18,18 @@ uses JEV to check retrieved excerpts. Request and configured cost limits apply;
 all calls are logged under research, with no complaint acquisition or evaluation.
 
 Briefs search software, services, physical products, process changes and community
-approaches by default. Choose applicable `remedy_types` in the JSON. Retrieval and
-verification are limited to six distinct candidate pages, with capacity reserved
-for each selected remedy type. Retrieved sources and named remedies retain their
-separate identities in the report.
+approaches by default. Choose applicable `remedy_types` in the JSON. An optional
+`known_remedies` list (up to four names from the original evidence) searches those
+remedies first and prefers matching provider domains. Retrieval is bounded to six
+pages, or ten when following known remedies. Retrieved sources and named remedies
+retain their separate identities in the report.
 User briefs are explicit interpretations, not automatically verified source facts.
 
-With a TypeSafe key, brief-based research now selects named remedies and literal
-excerpts for function, pricing, limitations, setup, customer complaints, adoption
-and constraint fit in the same bounded per-page JEV request. Markdown/JSON include
+With a TypeSafe key, brief-based research first selects up to three named remedies
+per page, then selects evidence for each fixed identity. A separate check evaluates
+the selected quotes for subject attribution, task fit and the complete remaining
+constraint. Literal function, pricing, limitations, setup, customer complaints and
+adoption excerpts retain their citations. Markdown/JSON include
 consolidated citations and a comparison, with a cautious research disposition.
 Provider usage claims, independent reports, review counts and downloads retain
 their distinct types. Missing information stays unknown. Details and limitations:
@@ -36,6 +39,21 @@ A Python CLI for discovering recurring real-world problems and ranking evidence-
 opportunities. Brave searches broad industries; Hacker News adds attributed discussions.
 URL inspection and scraped CSV imports use the same pipeline. SQLite stores original
 content, judgments, evidence, grouped opportunities, bookmarks, research and usage.
+
+For current discussion-focused collection and the revised experimental actor/task
+review:
+
+```sh
+python main.py hunt --topic "client website bug feedback" --scope "Freelance website developers collecting actionable client bug reports" --since 2025-01-01 --until 2026-10-10 --discussions --evaluation-rubric general-v5 --queries 2 --max-sources 12 --audit-yield
+```
+
+Search dates are leads, not proof of original publication or current experience.
+Page publication/modified/search dates are kept separately; short extracted cards
+remain fragments. General-v5 preserves source-selected actor/task/consequence,
+existing remedy and constraint excerpts, removes unlinked commenter workarounds,
+and places primary candidates before material requiring review. It remains opt-in;
+production and the frozen general-v4 rubric are unchanged. The live improvement
+review documents the remaining acquisition and semantic limitations.
 
 ## Setup
 

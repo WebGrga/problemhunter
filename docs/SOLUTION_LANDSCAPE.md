@@ -1,9 +1,10 @@
 # Solution-landscape research
 
 Brief-based `research` compares named remedies rather than treating search-result
-titles as product identities. It uses the existing bounded HTTP transport and
-one JEV request per retrieved page, at most six pages. No stronger-model endpoint
-or additional paid experiment is needed to use or test this implementation.
+titles as product identities. The current v2 implementation is described under
+**October 10 usefulness repairs** below. It uses separate identity, fixed-subject
+evidence and quote-assessment calls. The original v1 description below is retained
+for history; it is not the current request budget or validation claim.
 
 ## Reading the comparison
 
@@ -71,3 +72,23 @@ unverified candidates and the comparison says insufficient information.
 Next development priority: targeted source follow-up per named candidate, more
 complete alias/provider identity handling, and a reviewed cached/live pilot under
 the existing shared cost accounting. Do not reset the approved pilot budget.
+# October 10 usefulness repairs
+
+Brief-based research now uses `solution-landscape-v2`: identity selection (up to
+three names per page), fixed-subject evidence selection, then assessment of the
+actual selected quotes. Claims with unestablished subject attribution are removed.
+Quotes may use a provider's "we"/plan wording only with a literal named subject
+anchor on a model-classified single-remedy provider page; classification remains
+an inference. Known remedies from a reviewed brief are searched first, preferring
+matching provider domains. Contextual spans extend across a bounded 24,000-character
+body rather than only the first 48 sentences. Every call and quote remains saved.
+
+Partial task fit is separate from complete task fit and cannot establish that the
+constraint is satisfied. A compound constraint requires all parts, and no closest
+remedy is invented when fit remains unknown. Explicit brief names are not verified
+identities by themselves. Six pages remain the default bound; named follow-up is
+bounded to ten. More requests per page mean the cost ceiling matters.
+
+Legacy v1 evidence parser/tests remain available for regression comparison. The
+historical description below refers to that first implementation. See the fresh
+usefulness reviews for live results; passing mock tests do not establish accuracy.
