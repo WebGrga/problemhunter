@@ -39,6 +39,8 @@ def _actionable_summary(item, source_map, problem_map):
                 "source_url": source.url if source else None, "complaint": problem.statement,
                 "need_status": status, "quotes": [],
                 "evaluation_mode": problem.judgments.get("evaluation_mode", problem.evidence.get("mode", "unknown"))}
+        if problem.evidence.get('problem_representation'):
+            card['problem_representation'] = problem.evidence['problem_representation']
         for name in ("genuine", "first_hand", "impact", "workaround", "loss", "literal_loss", "willingness_to_pay"):
             quote = problem.evidence.get(name)
             if not isinstance(quote, str) or not quote.strip():
@@ -201,6 +203,12 @@ def export_report(opportunities, sources, path, format="markdown", problems=None
         if not item.problem_ids:
             lines += ["- No individual problem judgments recorded."]
         for card in summary["evidence_cards"][:3]:
+            representation = card.get('problem_representation')
+            if representation:
+                lines += ['- Actor/task review (model interpretation; exact source excerpts):']
+                for field, quote in representation['excerpts'].items():
+                    lines += [f"  - {field.replace('_', ' ')}: {_excerpt(quote) if quote else 'Unknown'}"]
+                lines += [f"  - Experience status: {representation['selections']['experience_status']} (at publication)."]
             lines += [f"- Complaint summary (model inference): {_excerpt(card['complaint'])}",
                       f"  Source: `{card['source_id']}`; problem: `{card['problem_id']}`; need status: {card['need_status']}; evaluation mode: {card['evaluation_mode']}."]
             seen_quotes = set()

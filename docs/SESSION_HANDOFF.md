@@ -1,5 +1,22 @@
 # Session handoff — October 10, 2026
 
+## Latest continuation: usefulness repairs
+
+See [USEFULNESS_IMPROVEMENTS_2026-10-10.md](USEFULNESS_IMPROVEMENTS_2026-10-10.md).
+Branch `fix/research-usefulness` adds collection date/discussion controls,
+fragment/publication provenance repairs, opt-in general-v5 actor/task representation
+and source-bound landscape v2. 195 tests pass. Diagnostic replay rejects the known
+positive review, buyer/seller and interview-feedback errors. Five new source samples
+still yield mostly snippets, and no primary candidates. Do not claim universal
+accuracy or promote general-v5 to production. Final feedback comparison has five
+remedies, 25 source claims and insufficient information on complete constraint fit.
+
+Shared $1 ledger cumulative estimate is now $0.325502696; remaining $0.674497304.
+Do not reset the budget. Original and intermediate/final raw artifacts are preserved
+under `reports/fresh-e2e-2026-10-10/`, including `improvement-revised/`.
+Next priority: permitted complete-body source yield, then client/agent contextual
+trial of the closest existing remedy. No customer outreach is authorized.
+
 ## Latest state: merged main and fresh live usefulness test
 
 PR #2 is merged at `f1008977030300eb1ac298046837bcaf56cbdc40` after CI

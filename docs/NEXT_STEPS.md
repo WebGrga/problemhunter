@@ -1,5 +1,16 @@
 # Next steps — universal pain-point research
 
+## Latest continuation
+
+Collection provenance, actor/task routing and fixed-subject comparison repairs
+are implemented on `fix/research-usefulness`. Read
+[USEFULNESS_IMPROVEMENTS_2026-10-10.md](USEFULNESS_IMPROVEMENTS_2026-10-10.md).
+The comparison is materially more informative; fresh acquisition still produces
+mostly inaccessible snippets and no primary candidates. Next improve permitted
+complete-body yield before expanding collection. Keep general-v5 experimental;
+do not infer new business opportunities from already remedied maker accounts.
+Shared approved $1 ledger total: $0.325502696, with $0.674497304 remaining.
+
 ## Current priority after the fresh live test
 
 PR #2 is merged on main at `f100897`; obsolete branches are removed. The eight-field

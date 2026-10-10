@@ -2,6 +2,7 @@
 import asyncio
 from dataclasses import replace
 import ipaddress
+import json
 import socket
 import time
 from urllib.parse import urljoin, urlsplit, urlunsplit
@@ -14,6 +15,33 @@ from .models import Source
 
 USER_AGENT = "ProblemHunter"
 MAX_BYTES = 2_000_000
+
+
+def page_dates(soup):
+    """Preserve original publication separately from modification/search dates."""
+    def meta(*keys):
+        for key in keys:
+            tag = soup.find('meta', attrs={'property': key}) or soup.find('meta', attrs={'name': key})
+            if tag and tag.get('content'):
+                return tag['content']
+    published = meta('article:published_time', 'datePublished', 'date')
+    modified = meta('article:modified_time', 'dateModified')
+    def objects(value):
+        if isinstance(value, dict):
+            yield value
+            for child in value.values():
+                yield from objects(child)
+        elif isinstance(value, list):
+            for child in value:
+                yield from objects(child)
+    for tag in soup.find_all('script', attrs={'type': 'application/ld+json'}):
+        try:
+            for item in objects(json.loads(tag.string or tag.get_text())):
+                published = published or item.get('datePublished')
+                modified = modified or item.get('dateModified')
+        except (ValueError, TypeError):
+            continue
+    return published if isinstance(published, str) else None, modified if isinstance(modified, str) else None
 
 
 async def validate_public_url(url):
@@ -111,26 +139,37 @@ class Extractor:
                 raise ValueError("Unsupported page content type")
             if content_type == "text/plain":
                 title, content, author, published = urlsplit(current).hostname, response.text, None, None
+                modified = None
             else:
                 soup = BeautifulSoup(response.text, "html.parser")
                 title = soup.title.get_text(" ", strip=True) if soup.title else urlsplit(current).hostname
                 author_tag = soup.find("meta", attrs={"name": "author"})
-                date_tag = soup.find("meta", attrs={"property": "article:published_time"})
                 author = author_tag.get("content") if author_tag else None
-                published = date_tag.get("content") if date_tag else None
+                published, modified = page_dates(soup)
                 if not published:
-                    time_tag = soup.find("time", attrs={"datetime": True})
+                    time_tag = soup.find("time", attrs={"datetime": True, 'itemprop': 'datePublished'})
                     published = time_tag.get("datetime") if time_tag else None
                 for element in soup(["script", "style", "nav", "header", "footer", "aside", "noscript", "form"]):
                     element.decompose()
-                body = soup.find("article") or soup.find("main") or soup.body or soup
+                # Recommendation cards often use <article>; prefer the actual
+                # main content when it contains substantially more material.
+                articles = soup.find_all('article')
+                article = max(articles, key=lambda e: len(e.get_text()), default=None)
+                main = soup.find('main')
+                body = main if main is not None and (article is None or len(main.get_text()) > 2 * len(article.get_text())) else article
+                body = body if body is not None else main if main is not None else soup.body or soup
                 content = body.get_text(" ", strip=True)
             content = " ".join(content.split())
             if not content:
                 raise ValueError("Page has no extractable content")
             source = Source(url=original_url, title=title or current, content=content[:100_000],
                 source=urlsplit(current).hostname or "web", author=author, published_at=published,
-                metadata={"retrieved_url": current, "extraction": "public page", "truncated": len(content) > 100_000})
+                content_kind='snippet' if len(content) < 300 else 'full_text',
+                metadata={"retrieved_url": current, "extraction": "public page", "truncated": len(content) > 100_000,
+                    'original_published_at': published, 'modified_at': modified,
+                    'date_provenance': 'page publication metadata' if published else 'unknown',
+                    'extraction_quality': 'short_fragment' if len(content) < 300 else 'body_candidate',
+                    **({'evidence_limit': 'Extracted page fragment under 300 characters; completeness unverified'} if len(content) < 300 else {})})
             return deduplicate([source])[0]
         raise ValueError("Too many redirects")
 
@@ -139,9 +178,12 @@ class Extractor:
             return source
         try:
             fetched = await self.fetch(source.url)
-            return replace(source, content=fetched.content, content_kind="full_text",
-                author=source.author or fetched.author, published_at=source.published_at or fetched.published_at,
-                metadata={**source.metadata, **fetched.metadata})
+            metadata = {**source.metadata, **fetched.metadata, 'search_reported_at': source.metadata.get('search_reported_at', source.published_at)}
+            if fetched.published_at and source.published_at and fetched.published_at[:10] != source.published_at[:10]:
+                metadata['date_conflict'] = 'Original publication differs from search-reported date'
+            return replace(source, content=fetched.content if fetched.content_kind == 'full_text' else source.content,
+                content_kind=fetched.content_kind, author=source.author or fetched.author,
+                published_at=fetched.published_at or source.published_at, metadata=metadata)
         except Exception as exc:
             return replace(source, metadata={**source.metadata, "extraction_error": f"{type(exc).__name__}: {exc}",
                 "evidence_limit": "Search snippet only; full discussion unavailable"})

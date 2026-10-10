@@ -9,7 +9,7 @@ RUBRIC_DIR = Path(__file__).with_name("rubrics")
 
 
 def load_rubric(name="v1"):
-    path = RUBRIC_DIR / f"{name}.json" if name in {"v1", "v2", "v3", "general-v4", "production"} else Path(name)
+    path = RUBRIC_DIR / f"{name}.json" if name in {"v1", "v2", "v3", "general-v4", "general-v5", "production"} else Path(name)
     try:
         rubric = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, ValueError) as exc:

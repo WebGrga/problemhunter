@@ -47,7 +47,7 @@ def parser():
     common.add_argument('--max-cost', type=nonnegative, help='Estimated USD ceiling; requires configured provider prices')
     common.add_argument('--rate', type=nonnegative, default=1.0, help='Minimum seconds between requests per provider')
     common.add_argument('--verbose', action='store_true')
-    common.add_argument('--evaluation-rubric', default='production', help='production (default), invoice v3, or general-v4/custom experimental JSON')
+    common.add_argument('--evaluation-rubric', default='production', help='production (default), invoice v3, or general-v4/general-v5/custom experimental JSON')
     common.add_argument('--scope', help='Research topic for URL/CSV general-v4; hunts use --topic by default')
     common.add_argument('--audit-yield', action='store_true', help='Export a run-scoped source/complaint/group/cost funnel')
     sub = root.add_subparsers(dest='command', required=True)
@@ -56,6 +56,9 @@ def parser():
     hunt.add_argument('--queries', type=positive, default=25)
     hunt.add_argument('--max-sources', type=positive, default=100)
     hunt.add_argument('--no-fetch', action='store_true', help='Use snippets only; reports flag this limitation')
+    hunt.add_argument('--since', help='Earliest publication date, YYYY-MM-DD; search dates require original-source review')
+    hunt.add_argument('--until', help='Latest publication date, YYYY-MM-DD')
+    hunt.add_argument('--discussions', action='store_true', help='Prefer original discussion results over vendor guides')
     inspect = sub.add_parser('inspect-url', parents=[common], help='Analyze a public webpage')
     inspect.add_argument('url')
     csv = sub.add_parser('import-csv', parents=[common], help='Analyze scraped CSV records')
@@ -136,7 +139,9 @@ async def run(args):
                 pipeline = Pipeline(store, evaluator, extractor, researcher, llm=llm)
                 print(f"Collecting input for {args.command}…", file=sys.stderr)
                 if args.command == 'hunt':
-                    sources = await discovery.hunt(args.topic, queries=args.queries, max_sources=args.max_sources)
+                    sources = await discovery.hunt(args.topic, queries=args.queries, max_sources=args.max_sources,
+                        **({'since': args.since, 'until': args.until, 'discussions': args.discussions}
+                           if args.since or args.until or args.discussions else {}))
                     if discovery.errors:
                         print(f"Warning: {len(discovery.errors)} searches failed; results are partial. Use --verbose for details.", file=sys.stderr)
                     if not sources:
