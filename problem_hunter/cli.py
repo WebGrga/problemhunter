@@ -200,8 +200,10 @@ async def research_stored(args, store):
     brief = validate_brief(brief)
     if brief != selected.research_brief:
         selected.solutions = []
+        selected.solution_landscape = {}
         selected.potential_fixes = []
         selected.research_status = 'brief_ready'
+        selected.next_step = f"Compare existing remedies for {brief['workflow']} against: {brief['unmet_constraint']}."
     selected.research_brief = brief
     print(json.dumps({'research_brief': brief, 'search_queries': research_queries(selected)}, indent=2))
     if not args.plan_only:

@@ -16,13 +16,20 @@ are preserved. A changed brief invalidates old solution results. All new API cal
 are research-phase accounting; no paid experiments were run. 172 local tests pass,
 including mocked scheduling, stand-up and small-home privacy cases.
 
-Next: consolidate named offerings with multiple citations; source-backed fit,
-pricing and constraints; attributed adoption types; honest research disposition.
-Candidate page titles remain source names, not established product identities.
-Broad discovery is implemented, but process/community excerpt verification still
-needs dedicated roles and grounded offering-level synthesis. Existing legacy
-invoice searches retain their two-query behavior. The three new domain tests are
-mocked regression checks, not fresh live pilot or semantic accuracy evidence.
+Latest continuation: `problem_hunter/landscape.py` implements bounded named-remedy
+selection, conservative provider/domain consolidation, source-backed comparison
+fields, typed adoption provenance and constraint-backed research dispositions.
+Brief-based JEV uses one request per page and retains full judgments/quotes.
+Process/community remedies are supported; page titles remain source titles.
+Changed briefs or supporting problem IDs invalidate prior comparisons. Reports
+focus next checks on remedy fit, with buying demand as optional context.
+186 local tests pass; all new domain examples use mocked fictitious remedies.
+No fresh paid run or semantic-accuracy claim. See `SOLUTION_LANDSCAPE.md`.
+
+Latest work is on PR #2 (`feat/solution-research-briefs`); PR #1 is merged.
+Next: targeted source follow-up for named candidates, identity/alias handling,
+and a reviewed cached/live pilot within cumulative approved cost accounting.
+Existing legacy invoice searches retain their two-query behavior.
 
 The sections below document the previous recovery state for historical context.
 

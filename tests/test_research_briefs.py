@@ -60,7 +60,7 @@ def test_stored_cli_plan_needs_no_credentials_and_retains_other_groups(tmp_path,
         monkeypatch.delenv(key, raising=False)
     db = tmp_path / 'test.db'
     with Store(db) as store:
-        store.save_opportunities([Opportunity('a', 'A', 'A', 'other', solutions=[{'name': 'stale'}]),
+        store.save_opportunities([Opportunity('a', 'A', 'A', 'other', solutions=[{'name': 'stale'}], solution_landscape={'stale': True}),
                                   Opportunity('b', 'B', 'B', 'other')])
         store.bookmark('a')
     path = tmp_path / 'brief.json'
@@ -71,6 +71,7 @@ def test_stored_cli_plan_needs_no_credentials_and_retains_other_groups(tmp_path,
         groups = {item.id: item for item in store.load_opportunities()}
         assert set(groups) == {'a', 'b'} and groups['a'].bookmarked
         assert groups['a'].solutions == [] and groups['a'].research_status == 'brief_ready'
+        assert groups['a'].solution_landscape == {}
         assert store.usage_summary()['requests'] == 0
     assert 'changing availability' in output.with_suffix('.md').read_text()
     assert len(json.loads(output.with_suffix('.json').read_text())['opportunities']) == 1
@@ -110,7 +111,12 @@ async def test_pipeline_keeps_explicit_brief_on_repeat(tmp_path):
         pipeline = Pipeline(store, Evaluator(None, offline=True))
         group = (await pipeline.process([source]))[0]
         group.research_brief = validate_brief(brief('managing appointments'))
+        group.solution_landscape = {'version': 'fixture'}
         store.save_opportunities([group])
         repeated = (await pipeline.process([source]))[0]
         assert repeated.research_brief == group.research_brief
+        assert repeated.solution_landscape == group.solution_landscape
         assert research_queries(repeated)[0].startswith('managing appointments')
+        changed = (await pipeline.process([Source('https://example.org/b', 'Scheduling',
+            'We waste hours managing bookings manually.', author='bob')]))[0]
+        assert changed.solution_landscape == {} and changed.research_status == 'brief_needs_review'

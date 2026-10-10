@@ -49,6 +49,7 @@ class Opportunity:
     priority_breakdown: dict = field(default_factory=dict)
     review_required: bool = False
     research_brief: dict = field(default_factory=dict)
+    solution_landscape: dict = field(default_factory=dict)
 
 
 def serialize(value: Any) -> dict:

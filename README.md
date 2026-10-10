@@ -20,9 +20,17 @@ all calls are logged under research, with no complaint acquisition or evaluation
 Briefs search software, services, physical products, process changes and community
 approaches by default. Choose applicable `remedy_types` in the JSON. Retrieval and
 verification are limited to six distinct candidate pages, with capacity reserved
-for each selected remedy type. These are still research sources: named-offering
-consolidation, adoption comparison and evidence-backed dispositions are pending.
+for each selected remedy type. Retrieved sources and named remedies retain their
+separate identities in the report.
 User briefs are explicit interpretations, not automatically verified source facts.
+
+With a TypeSafe key, brief-based research now selects named remedies and literal
+excerpts for function, pricing, limitations, setup, customer complaints, adoption
+and constraint fit in the same bounded per-page JEV request. Markdown/JSON include
+consolidated citations and a comparison, with a cautious research disposition.
+Provider usage claims, independent reports, review counts and downloads retain
+their distinct types. Missing information stays unknown. Details and limitations:
+[solution-landscape research](docs/SOLUTION_LANDSCAPE.md).
 
 A Python CLI for discovering recurring real-world problems and ranking evidence-backed
 opportunities. Brave searches broad industries; Hacker News adds attributed discussions.

@@ -17,8 +17,10 @@ Current development branch `feat/solution-research-briefs` implements step 1 and
 broad remedy search queries from step 2. `research ID --brief FILE --plan-only`
 saves/exports an explicit brief without calls; `research ID` researches that stored
 opportunity without reevaluation. New brief fields persist in SQLite/JSON/Markdown.
-172 local tests pass, including mocked cross-domain cases; no new paid runs.
-Named offerings, consolidation, comparison, adoption and dispositions remain open.
+Latest continuation implements bounded named-remedy selection, conservative
+consolidation, cited comparison fields, adoption provenance and research
+dispositions. 186 local tests pass, including mocked cross-domain cases; no new
+paid runs. See `SOLUTION_LANDSCAPE.md` for behavior, limits and follow-up priorities.
 
 October 10 user direction supersedes the ordering below. Buying demand and
 independent recurrence remain optional evidence/context, not prerequisites for
@@ -62,14 +64,13 @@ their source-backed fit and shortcomings, and whether further investigation is
 worth their time. Unknown buying demand should not obscure that comparison.
 Do not treat this as proof that a new business should be built.
 
-Current gap: `Researcher.research` skips general-v4 groups without `problem_family`;
-it makes two software-oriented searches, stores candidate pages and has no adoption
-comparison. This is not yet the solution-landscape workflow described above.
+Current gap: discovery is bounded to six pages and one named remedy per page;
+identity aliases and targeted source follow-up remain incomplete. Model-selected
+literal claims and constraint fit still require review and a contextual trial.
 More triage questions or a larger complaint batch are not the immediate priority.
 
-Current verification: 158 local tests passed for the universal-pilot implementation.
-PR #1 still has the earlier remote snapshot; do not claim these changes passed CI
-until the relevant commit is available remotely and its checks have completed.
+Current verification: 186 local tests passed. PR #1 is merged after CI; PR #2
+contains the development continuation. Check CI for its latest head before merge.
 
 ## Where we are
 
