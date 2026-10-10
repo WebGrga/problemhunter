@@ -1,5 +1,32 @@
 # Session handoff — October 10, 2026
 
+## Latest state: merged main and fresh live usefulness test
+
+PR #2 is merged at `f1008977030300eb1ac298046837bcaf56cbdc40` after CI
+passed on Python 3.10/3.12. Local main is synchronized. The three obsolete
+remote branches and both local feature branches were removed on explicit user
+instruction after checking their contents; only main remains. A history bundle
+is at `reports/backups/problemhunter-before-branch-cleanup-2026-10-10.bundle`.
+Older branch/PR status statements below are historical and superseded.
+
+The user shifted priority to demonstrated usefulness with fresh AI-era evidence,
+and authorized a NEW shared $1 estimated API cap. Fresh eight-field live discovery,
+extraction, general-v4 evaluation/grouping/scoring and four eligible landscape
+attempts completed. Estimated spend: $0.199462758, leaving $0.800537242 under this
+cap; preserve the shared ledger on retries. Do not silently reset this budget.
+
+Read [FRESH_E2E_REVIEW_2026-10-10.md](FRESH_E2E_REVIEW_2026-10-10.md) for
+the performance assessment and next priorities. 61 sources collected, 59 evaluated,
+16 retained groups. No useful completed solution comparison; all four landscape
+dispositions were insufficient information. No new application features were
+added. Freshness filters and error isolation exist only in the local test harness,
+not in the application. Raw data/ledger/protocol/reviews are local and ignored under
+`reports/fresh-e2e-2026-10-10/`. Prior mock tests are not semantic validation.
+
+Next: acquisition/recency and actor/task/speaker routing, then a genuinely useful
+small comparison following named remedies in the original freelance-feedback
+account. Do not add more speculative features or claim a validated market gap.
+
 ## Restart recovery completed; current work
 
 The restarted session successfully pushed original local commit `b1738f9` using

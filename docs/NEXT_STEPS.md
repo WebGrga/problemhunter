@@ -1,5 +1,21 @@
 # Next steps — universal pain-point research
 
+## Current priority after the fresh live test
+
+PR #2 is merged on main at `f100897`; obsolete branches are removed. The eight-field
+fresh live test is complete: 61 collected sources, 59 evaluated, 16 retained groups,
+four landscape attempts, no useful completed solution comparison. Estimated API
+cost is $0.199462758 against the newly approved shared $1 cap. See
+[FRESH_E2E_REVIEW_2026-10-10.md](FRESH_E2E_REVIEW_2026-10-10.md).
+
+Work on measured usefulness in this order: (1) obtain current, complete, attributed
+problem evidence and report low yield; (2) correct actor/task/speaker and historical
+versus current routing; (3) produce a useful source-backed comparison for the
+AI-era freelance client-feedback case by following remedies named in the complaint.
+Use this corpus for diagnostics/regressions and a new separate sample for any
+improvement claim. No extra features or broader crawl until those results improve.
+The branch/PR and pre-live-test statements below are historical and superseded.
+
 Saved October 9, updated October 10, 2026. Product scope is universal: personal,
 social, restaurant, small-business and larger-organization problems; remedies may
 be products, services, process changes, events, automation or software. Invoice
