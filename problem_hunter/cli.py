@@ -47,7 +47,8 @@ def parser():
     common.add_argument('--max-cost', type=nonnegative, help='Estimated USD ceiling; requires configured provider prices')
     common.add_argument('--rate', type=nonnegative, default=1.0, help='Minimum seconds between requests per provider')
     common.add_argument('--verbose', action='store_true')
-    common.add_argument('--evaluation-rubric', default='production', help='production (default), or opt-in v3/custom grounded_v3 JSON')
+    common.add_argument('--evaluation-rubric', default='production', help='production (default), invoice v3, or general-v4/custom experimental JSON')
+    common.add_argument('--scope', help='Research topic for URL/CSV general-v4; hunts use --topic by default')
     common.add_argument('--audit-yield', action='store_true', help='Export a run-scoped source/complaint/group/cost funnel')
     sub = root.add_subparsers(dest='command', required=True)
     hunt = sub.add_parser('hunt', parents=[common], help='Discover complaints across Brave and Hacker News')
@@ -109,10 +110,19 @@ async def run(args):
                 else:
                     if args.offline:
                         raise ValueError('Experimental rubrics cannot use --offline; use production for the labeled heuristic demo.')
-                    from .triage import ExperimentalEvaluator
-                    evaluator = ExperimentalEvaluator(http, os.environ.get('TYPESAFE_API_KEY', ''),
-                                                      os.environ.get('JEV_MODEL', 'jev-latest'), args.evaluation_rubric)
-                    print('Experimental invoice-specific triage; scores are not market validation.', file=sys.stderr)
+                    from .rubric import load_rubric
+                    definition = load_rubric(args.evaluation_rubric)
+                    if definition['routing']['mode'] == 'universal_v4':
+                        from .universal import UniversalEvaluator
+                        scope = args.scope or getattr(args, 'topic', None) or 'Any real-world experienced problem; no topic restriction'
+                        evaluator = UniversalEvaluator(http, os.environ.get('TYPESAFE_API_KEY', ''),
+                            os.environ.get('JEV_MODEL', 'jev-latest'), scope, definition)
+                        print(f'Experimental general pain-point triage. Scope: {scope}. Not market validation.', file=sys.stderr)
+                    else:
+                        from .triage import ExperimentalEvaluator
+                        evaluator = ExperimentalEvaluator(http, os.environ.get('TYPESAFE_API_KEY', ''),
+                            os.environ.get('JEV_MODEL', 'jev-latest'), definition)
+                        print('Experimental invoice-specific triage; scores are not market validation.', file=sys.stderr)
                 researcher = Researcher(discovery, extractor, http=http, llm=llm,
                                         jev_key='' if args.offline else os.environ.get('TYPESAFE_API_KEY', ''),
                                         jev_model=os.environ.get('JEV_MODEL', 'jev-latest'))

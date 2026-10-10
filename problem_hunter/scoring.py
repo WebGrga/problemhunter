@@ -26,6 +26,9 @@ def score_opportunity(opportunity, problems, sources):
                                            'observed_author_groups': len(by_author),
                                            'problem_family': next(iter(families)) if len(families) == 1 else None,
                                            'record_scores': [t['score'] for t in scored]}
+        if any(t.get('ranking_policy') == 'priority_before_review_flag' for t in triages):
+            opportunity.priority_breakdown['ranking_policy'] = 'priority_before_review_flag'
+            opportunity.next_step = 'Ask affected people for a recent example, their actual goal, what they tried and the remaining constraint. Check whether a remedy is wanted before proposing a commercial offer.'
         for t in triages:
             for reason in t.get('review_reasons', []):
                 if reason not in opportunity.unknowns:
@@ -44,6 +47,8 @@ def score_opportunity(opportunity, problems, sources):
         return list(unique.values())
     values = {name: None for name in WEIGHTS}
     direct = independent_reports([p for p in selected if valid_quote(p, "loss") and p.judgments.get("loss", 0) >= .6])
+    direct += independent_reports([p for p in selected if p.judgments.get('evaluation_mode') == 'jev_universal_experimental'
+                                   and valid_quote(p, 'impact') and valid_quote(p, 'first_hand')])
     if direct:
         values["pain_severity"] = sum(p.judgments.get("severity", 0) for p in direct) / len(direct)
     if opportunity.independent_complainants:

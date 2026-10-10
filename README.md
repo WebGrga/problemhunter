@@ -55,7 +55,7 @@ zero unchanged sources. All evidence remains weak in this demonstration.
 
 The actual JEV questions are now readable/editable files:
 [production](problem_hunter/rubrics/production.json),
-[experiment v1](problem_hunter/rubrics/v1.json), and
+[experiment v1](problem_hunter/rubrics/v1.json),
 [experiment v2](problem_hunter/rubrics/v2.json), and
 [experiment v3](problem_hunter/rubrics/v3.json).
 See [question-file instructions](problem_hunter/rubrics/README.md).
@@ -85,6 +85,22 @@ remain unknown; configure the price variables in `.env.example` for estimates an
 for original-run costs. Research uses bounded Brave searches and JEV-selected
 literal provider excerpts when JEV is configured; prices remain unverified context.
 See [v3 test results and limitations](docs/jev-v3-results.md).
+
+For domain-neutral, practical, personal/social and organizational pain-point
+research, use the separate opt-in [general-v4 questions](problem_hunter/rubrics/general-v4.json):
+
+```sh
+python main.py hunt --topic 'restaurant operations' --evaluation-rubric general-v4 --audit-yield
+python main.py import-csv collected.csv --scope 'meeting people' --evaluation-rubric general-v4
+```
+
+Any topic is allowed; invoice wording and family rules are not applied. Exact
+selected passages, original context and review flags remain inspectable. Social
+or emotional burden does not require financial loss. Payment candidates stay
+separate from verified spending; personal distress is not automatically a business
+opportunity or a problem an app should solve. This prototype has not been promoted
+to the default evaluator. See the [ten-case review](docs/PAIN_POINT_REVIEW.md) and
+[cross-domain pilot results](docs/GENERAL_PILOT_RESULTS.md).
 
 The official [TypeSafe API](https://docs.typesafe.ai/api) accepts `state`, `model`
 and a map of typed questions at `POST /v1/systemone`, authenticated with a bearer

@@ -39,7 +39,7 @@ def _actionable_summary(item, source_map, problem_map):
                 "source_url": source.url if source else None, "complaint": problem.statement,
                 "need_status": status, "quotes": [],
                 "evaluation_mode": problem.judgments.get("evaluation_mode", problem.evidence.get("mode", "unknown"))}
-        for name in ("genuine", "first_hand", "workaround", "loss", "literal_loss", "willingness_to_pay"):
+        for name in ("genuine", "first_hand", "impact", "workaround", "loss", "literal_loss", "willingness_to_pay"):
             quote = problem.evidence.get(name)
             if not isinstance(quote, str) or not quote.strip():
                 continue
@@ -52,6 +52,10 @@ def _actionable_summary(item, source_map, problem_map):
             else:
                 cautions.append(f"{name}: excerpt could not be verified against the stored source ({problem.source_id}).")
         payment = problem.evidence.get("verified_payment")
+        candidate = problem.evidence.get('payment_candidate')
+        if isinstance(candidate, dict) and _verified_quote(candidate.get('quote'), source):
+            card['payment_candidate'] = candidate
+            cautions.append('A literal payment candidate is selected by JEV; its meaning needs review and does not contribute verified payment points.')
         grounded_payment = (ground_payment(source.content, payment.get("signal"))
                             if source and isinstance(payment, dict) else None)
         if grounded_payment and grounded_payment["quote"] == payment.get("quote"):
@@ -94,10 +98,15 @@ def _actionable_summary(item, source_map, problem_map):
         next_steps.append("Ask affected users what they currently spend on solving this problem and verify any payment claim.")
     elif refusals:
         next_steps.append("Ask refusing users why they would not pay and which free or existing remedy they prefer.")
-    if not any(entry["field"] in ("loss", "literal_loss") for entry in quotes):
+    universal = any(card['evaluation_mode'] == 'jev_universal_experimental' for card in cards)
+    if universal:
+        next_steps.append('Verify the described practical, emotional or social impact and its frequency using a current example; do not require monetary loss.')
+        if item.category in {'social_relationships', 'health_wellbeing'}:
+            cautions.append('Personal accounts may involve sensitive information or vulnerable people. Use consent and appropriate review; do not infer diagnoses or target individuals from this report.')
+    elif not any(entry["field"] in ("loss", "literal_loss") for entry in quotes):
         next_steps.append("Verify the time or money lost using a concrete recent example.")
     # Prefer direct burden and experience over general problem excerpts.
-    quote_order = {"literal_loss": 0, "loss": 1, "first_hand": 2, "workaround": 3, "genuine": 4}
+    quote_order = {"literal_loss": 0, "impact": 0, "loss": 1, "first_hand": 2, "workaround": 3, "genuine": 4}
     quotes.sort(key=lambda entry: quote_order[entry["field"]])
     strongest = []
     seen_quotes = set()
@@ -117,6 +126,8 @@ def _rank_key(item):
     priority = getattr(item, "investigation_priority", None)
     if priority is None:
         return (1, 0, 0, -item.score, item.id)
+    if item.priority_breakdown.get('ranking_policy') == 'priority_before_review_flag':
+        return (0, 0, -priority, -item.score, item.id)
     return (0, int(getattr(item, "review_required", False)), -priority, -item.score, item.id)
 
 
@@ -145,7 +156,8 @@ def export_report(opportunities, sources, path, format="markdown", problems=None
     if not opportunities:
         lines += ["No qualifying opportunities were found.", ""]
     else:
-        lines += ["Ranked research shortlist (primary candidates before review-required candidates):", ""]
+        note = 'priority first; review flags remain visible' if any(o.priority_breakdown.get('ranking_policy') == 'priority_before_review_flag' for o in opportunities) else 'primary candidates before review-required candidates'
+        lines += [f"Ranked research shortlist ({note}):", ""]
         for rank, item in enumerate(opportunities, 1):
             priority = getattr(item, "investigation_priority", None)
             priority_label = f"{priority:.1f}/100" if priority is not None else "not assessed"
@@ -198,6 +210,9 @@ def export_report(opportunities, sources, path, format="markdown", problems=None
                 lines += [f"- Literal {label} excerpt from `{entry['source_id']}`: " + json.dumps(_excerpt(entry["quote"]), ensure_ascii=False)]
             if not card["quotes"]:
                 lines += ["- No verified literal evidence excerpts recorded."]
+            if card.get('payment_candidate'):
+                candidate = card['payment_candidate']
+                lines += [f"- Payment candidate ({candidate['signal']}; model interpretation, not verified spending): " + json.dumps(_excerpt(candidate['quote']), ensure_ascii=False)]
         if len(summary["evidence_cards"]) > 3:
             lines += [f"- {len(summary['evidence_cards']) - 3} additional judgments retained in JSON; all supporting sources are linked above."]
         lines += ["", "### Payment evidence", ""]

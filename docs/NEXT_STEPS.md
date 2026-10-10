@@ -1,7 +1,14 @@
-# Next steps — resume tomorrow
+# Next steps — universal pain-point research
 
-Saved October 9, 2026. This is a work queue, not authorization for new API
-spending or implementation tonight. Start with Step 1 tomorrow.
+Saved October 9, updated October 10, 2026. Product scope is universal: personal,
+social, restaurant, small-business and larger-organization problems; remedies may
+be products, services, process changes, events, automation or software. Invoice
+experiments are development probes, not the long-term scope.
+
+October 10: the user resumed reviews/implementation and approved a fresh
+cross-domain pilot with a shared US$0.15 estimated API-cost ceiling. The ten-case
+review is in `PAIN_POINT_REVIEW.md`. General-v4 is a separate opt-in prototype;
+old experiment files remain frozen. The six stages below remain the work queue.
 
 ## Where we are
 

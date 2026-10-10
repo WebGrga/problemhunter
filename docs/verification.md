@@ -66,3 +66,13 @@ parity and bounded solution research. V3 is experimental: retention improved,
 graded ranking worsened and the live discovery shortlist was noisy. Paid costs
 for this milestone used explicit configured prices; earlier unpriced records
 remain unknown rather than retroactively being labeled free.
+
+## Universal pain-point prototype (October 10, 2026)
+
+The [ten-case review](PAIN_POINT_REVIEW.md) and [cross-domain pilot](GENERAL_PILOT_RESULTS.md)
+cover general-v4, source passage selection, runtime scope, emotional/social impact,
+scope-isolation fixes and separated payment candidates. 158 local tests pass;
+the wheel includes the new question file. The three-domain pilot processed 26
+sources and retained 16 candidates for $0.019601898 estimated total, below the
+approved $0.15 ceiling. No independent-user recurring groups or buying demand
+were established. This prototype remains opt-in, not a validated replacement.

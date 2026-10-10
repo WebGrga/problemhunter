@@ -187,6 +187,8 @@ async def _evaluate_rubric(source, http, key, model, rubric):
 async def compare(records, http, key, model="jev-latest", rubric=None, reference_rubric=None, gate_only_rubric=None):
     rubric = snapshot(rubric or load_rubric("v1"))
     reference_rubric = snapshot(reference_rubric) if reference_rubric else None
+    if any(r and r.get('routing', {}).get('mode') == 'universal_v4' for r in (rubric, reference_rubric)):
+        raise ValueError('Use the general pilot or CLI for universal_v4; the invoice comparator does not support its passage selections')
     if "routing" not in rubric or (reference_rubric and "routing" not in reference_rubric):
         raise ValueError("compare requires experimental rubrics; production is the default baseline")
     baseline_definition = reference_rubric or snapshot(load_rubric("production"))

@@ -2,7 +2,7 @@
 import logging
 import hashlib
 import json
-from .discovery import deduplicate
+from .discovery import deduplicate, content_signature
 from .grouping import group_problems
 from .scoring import score_opportunity
 from .reports import _rank_key
@@ -31,6 +31,8 @@ class Pipeline:
                 async with semaphore:
                     return await self.extractor.enrich(source)
             sources = deduplicate(await asyncio.gather(*(fetch(s) for s in sources)))
+        incoming_urls = {s.url for s in sources if s.url}
+        incoming_content = {content_signature(s.content) for s in sources}
         existing = self.store.load_sources()
         sources = deduplicate(sources, existing=existing)
         self.store.save_sources(sources)
@@ -38,7 +40,12 @@ class Pipeline:
         synthesis = [getattr(self.llm, 'endpoint', ''), getattr(self.llm, 'model', '')] if self.llm else None
         def signature(source):
             return hashlib.sha256(json.dumps([mode, source.title, source.content, source.content_kind, source.author, source.source, synthesis, 'rubric-v3-grounded', getattr(self.evaluator, 'rubric_fingerprint', None)]).encode()).hexdigest()
-        fresh = [s for s in sources if s.metadata.get('evaluation_signature') != signature(s)]
+        current = [s for s in sources if s.url in incoming_urls
+                   or set(s.metadata.get('duplicate_urls', [])) & incoming_urls
+                   or content_signature(s.content) in incoming_content]
+        # Recompute grouping over the corpus, but never reclassify unrelated prior
+        # inputs under a different topic simply because they share this database.
+        fresh = [s for s in current if s.metadata.get('evaluation_signature') != signature(s)]
         log.info("Evaluating %s new or changed sources (%s unchanged)", len(fresh), len(sources)-len(fresh))
         if http is not None:
             http.phase = 'evaluation'
