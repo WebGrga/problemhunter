@@ -10,6 +10,59 @@ cross-domain pilot with a shared US$0.15 estimated API-cost ceiling. The ten-cas
 review is in `PAIN_POINT_REVIEW.md`. General-v4 is a separate opt-in prototype;
 old experiment files remain frozen. The six stages below remain the work queue.
 
+## Updated priority: solution landscape first
+
+October 10 user direction supersedes the ordering below. Buying demand and
+independent recurrence remain optional evidence/context, not prerequisites for
+researching an interesting pain point. The user will investigate those personally.
+The application's immediate value should be reducing the time spent discovering
+what already solves a problem and where those remedies fall short.
+
+Implement in this order:
+
+1. Give a shortlisted problem a concise, reviewable research brief: affected
+   person, task, desired outcome and unmet constraint. Allow an explicit workflow
+   override and researching an already stored group without rerunning discovery
+   or evaluation. Remove the invoice-family dependency for general-domain research;
+   do not replace it with an uncontrolled search of a long complaint title.
+2. Search remedies broadly: software, services, physical products, process changes
+   and community/event approaches as applicable. Compare named offerings rather
+   than treating article titles as product names. Consolidate multiple sources per
+   offering while retaining every relevant citation and retrieval date.
+3. Build a comparison of actual task fit, capabilities, limits, publicly available
+   pricing, setup/switching burden, alternatives and customer complaints. Separate
+   official functionality/pricing claims from independently attributed experiences.
+   Connect complaints to the specific offering/version/context when possible;
+   absence of a searched feature or complaint is not proof of a market gap.
+4. Add adoption evidence with an explicit type and provenance: provider-claimed
+   customers/users, independently reported usage, dated review counts, or other
+   proxies. Never label reviews/downloads/marketing claims as actual active users
+   or market share. If usage cannot be established, say so.
+5. Produce an evidence-backed research disposition, not a viability prediction:
+   apparently well served, plausible residual gap, or insufficient information.
+   State the closest existing remedy, the exact remaining constraint, whether a
+   non-build approach might suffice, and what check would change that conclusion.
+   Do not gate this brief on willingness-to-pay or recurrence scores.
+6. Test on three reviewed, cross-domain problems from the existing pilot: restaurant
+   staff scheduling, shorter workplace stand-ups, and privacy in small-home video
+   calls. Include physical/process remedies in the last two. First use mocked
+   sources and existing evidence; any fresh paid run stays within an explicitly
+   approved shared cap and reports acquisition/research costs separately.
+
+Acceptance: a reader should be able to identify the closest existing solutions,
+their source-backed fit and shortcomings, and whether further investigation is
+worth their time. Unknown buying demand should not obscure that comparison.
+Do not treat this as proof that a new business should be built.
+
+Current gap: `Researcher.research` skips general-v4 groups without `problem_family`;
+it makes two software-oriented searches, stores candidate pages and has no adoption
+comparison. This is not yet the solution-landscape workflow described above.
+More triage questions or a larger complaint batch are not the immediate priority.
+
+Current verification: 158 local tests passed for the universal-pilot implementation.
+PR #1 still has the earlier remote snapshot; do not claim these changes passed CI
+until the relevant commit is available remotely and its checks have completed.
+
 ## Where we are
 
 - Working CLI, SQLite, all three input methods, readable rubrics, reports and
