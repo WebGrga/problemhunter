@@ -1,5 +1,38 @@
 # Session handoff — October 10, 2026
 
+## Restart recovery completed; current work
+
+The restarted session successfully pushed original local commit `b1738f9` using
+Git outside the sandbox. PR #1 head matched the full SHA, and GitHub Actions run
+38033416567 passed on Python 3.10 and 3.12. The explicitly authorized merge
+completed at `3b6d1514f033336664a090ad109415ed0801eed3`; local `main` was
+fast-forwarded to that commit. No API snapshot replacement or force-push was used.
+
+New branch: `feat/solution-research-briefs`. Implemented the first solution-first
+milestone: bounded explicit task briefs, persisted workflow override, standalone
+stored-opportunity `research` command and no-network `--plan-only`, report display,
+and discovery across five selectable remedy types. Existing evaluations and scores
+are preserved. A changed brief invalidates old solution results. All new API calls
+are research-phase accounting; no paid experiments were run. 172 local tests pass,
+including mocked scheduling, stand-up and small-home privacy cases.
+
+Latest continuation: `problem_hunter/landscape.py` implements bounded named-remedy
+selection, conservative provider/domain consolidation, source-backed comparison
+fields, typed adoption provenance and constraint-backed research dispositions.
+Brief-based JEV uses one request per page and retains full judgments/quotes.
+Process/community remedies are supported; page titles remain source titles.
+Changed briefs or supporting problem IDs invalidate prior comparisons. Reports
+focus next checks on remedy fit, with buying demand as optional context.
+186 local tests pass; all new domain examples use mocked fictitious remedies.
+No fresh paid run or semantic-accuracy claim. See `SOLUTION_LANDSCAPE.md`.
+
+Latest work is on PR #2 (`feat/solution-research-briefs`); PR #1 is merged.
+Next: targeted source follow-up for named candidates, identity/alias handling,
+and a reviewed cached/live pilot within cumulative approved cost accounting.
+Existing legacy invoice searches retain their two-query behavior.
+
+The sections below document the previous recovery state for historical context.
+
 ## Immediate task: synchronize and merge the latest tested code
 
 The user explicitly requested: retry pushing and merge the newest code into

@@ -92,18 +92,20 @@ def _actionable_summary(item, source_map, problem_map):
     refusals = [entry for entry in payments if entry["signal"] == "explicit_refusal"]
     if refusals:
         cautions.append("Explicit refusal to pay is evidence against payment intent for those speakers, not evidence of a spending buyer.")
-    next_steps = [item.next_step] if item.next_step else []
-    next_steps.append("Ask affected users whether the complaint still occurs and what resolved or changed it.")
-    if not payments:
+    research_next = item.solution_landscape.get('disposition', {}).get('next_check')
+    next_steps = [research_next or item.next_step] if research_next or item.next_step else []
+    if not item.solution_landscape:
+        next_steps.append("Ask affected users whether the complaint still occurs and what resolved or changed it.")
+    if not payments and not item.solution_landscape:
         next_steps.append("Ask affected users what they currently spend on solving this problem and verify any payment claim.")
     elif refusals:
         next_steps.append("Ask refusing users why they would not pay and which free or existing remedy they prefer.")
     universal = any(card['evaluation_mode'] == 'jev_universal_experimental' for card in cards)
-    if universal:
+    if universal and not item.solution_landscape:
         next_steps.append('Verify the described practical, emotional or social impact and its frequency using a current example; do not require monetary loss.')
         if item.category in {'social_relationships', 'health_wellbeing'}:
             cautions.append('Personal accounts may involve sensitive information or vulnerable people. Use consent and appropriate review; do not infer diagnoses or target individuals from this report.')
-    elif not any(entry["field"] in ("loss", "literal_loss") for entry in quotes):
+    elif not item.solution_landscape and not any(entry["field"] in ("loss", "literal_loss") for entry in quotes):
         next_steps.append("Verify the time or money lost using a concrete recent example.")
     # Prefer direct burden and experience over general problem excerpts.
     quote_order = {"literal_loss": 0, "impact": 0, "loss": 1, "first_hand": 2, "workaround": 3, "genuine": 4}
@@ -221,6 +223,16 @@ def export_report(opportunities, sources, path, format="markdown", problems=None
         if not summary["payment_evidence"]:
             lines += ["- Unknown: no verified payment evidence."]
         lines += ["", "### Existing solutions and weaknesses", ""]
+        if item.research_brief:
+            brief = item.research_brief
+            lines += ["Research brief (explicit user interpretation; review against supporting evidence):", ""]
+            for field in ('affected_person', 'task', 'desired_outcome', 'unmet_constraint', 'workflow'):
+                lines += [f"- {field.replace('_', ' ').capitalize()}: {brief.get(field, 'Unknown')}"]
+            lines += ["- Remedy types: " + ', '.join(brief.get('remedy_types', [])), ""]
+        if item.solution_landscape:
+            from .landscape import markdown
+            lines += markdown(item.solution_landscape)
+            lines += ['### Retrieved research pages', '', 'Page titles identify sources; named remedies are compared above.', '']
         for solution in item.solutions:
             lines += [f"- [{solution.get('name', 'Research source')}](<{solution.get('url', '')}>) — {solution.get('status', 'candidate')}; relevance: {solution.get('relevance', 'unverified')}."]
             for field, label in (("functional_quote", "Functional source claim"), ("pricing_quote", "Pricing excerpt (context unverified)"), ("weakness_quote", "Weakness excerpt")):

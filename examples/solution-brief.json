@@ -1,0 +1,8 @@
+{
+  "affected_person": "Person working from a small shared home",
+  "task": "video call privacy in small homes",
+  "desired_outcome": "Take work calls without exposing private conversations or disturbing others",
+  "unmet_constraint": "Limited floor space and sound leakage between shared rooms",
+  "workflow": "video call privacy in small homes",
+  "remedy_types": ["software", "service", "physical", "process", "community"]
+}

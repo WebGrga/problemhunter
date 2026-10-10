@@ -77,6 +77,13 @@ class Pipeline:
                 opportunity.solutions = old.solutions
                 opportunity.potential_fixes = old.potential_fixes
                 opportunity.research_status = old.research_status
+                opportunity.research_brief = old.research_brief
+                opportunity.solution_landscape = old.solution_landscape
+                if old.solution_landscape and set(old.problem_ids) != set(opportunity.problem_ids):
+                    opportunity.solution_landscape = {}
+                    opportunity.solutions = []
+                    opportunity.research_status = 'brief_needs_review'
+                    opportunity.unknowns.append('Supporting problem group changed; review the saved brief before trusting prior solution research.')
         for opportunity in opportunities:
             score_opportunity(opportunity, all_problems, all_sources)
         opportunities.sort(key=_rank_key)
