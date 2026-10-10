@@ -1,5 +1,29 @@
 # Problem Hunter
 
+Research an already stored opportunity with an explicit task brief, without
+repeating discovery of complaints or their evaluation:
+
+```sh
+python main.py research OPPORTUNITY_ID --brief examples/solution-brief.json --plan-only --db problem_hunter.db --output reports/solution-plan
+python main.py research OPPORTUNITY_ID --db problem_hunter.db --max-requests 30 --output reports/solution-research
+```
+
+The first command makes no network calls and saves a reviewable brief and search
+plan. Replace the example with the affected person, task, desired outcome and
+remaining constraint from your selected opportunity. An optional `--workflow`
+overrides the concise search label (at most 12 words). Changing the brief clears
+previous solution results so they cannot be presented as research for the new task.
+The second command uses the saved brief; it requires a Brave key and optionally
+uses JEV to check retrieved excerpts. Request and configured cost limits apply;
+all calls are logged under research, with no complaint acquisition or evaluation.
+
+Briefs search software, services, physical products, process changes and community
+approaches by default. Choose applicable `remedy_types` in the JSON. Retrieval and
+verification are limited to six distinct candidate pages, with capacity reserved
+for each selected remedy type. These are still research sources: named-offering
+consolidation, adoption comparison and evidence-backed dispositions are pending.
+User briefs are explicit interpretations, not automatically verified source facts.
+
 A Python CLI for discovering recurring real-world problems and ranking evidence-backed
 opportunities. Brave searches broad industries; Hacker News adds attributed discussions.
 URL inspection and scraped CSV imports use the same pipeline. SQLite stores original

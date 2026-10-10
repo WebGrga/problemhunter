@@ -24,9 +24,50 @@ FAMILY_WORKFLOWS = {
 COMPLAINT = re.compile(r"\b(expensive|missing|cannot|can't|unreliable|frustrat\w*|problem\w*|difficult|overdue|unpaid|lost|fails?|broken)\b", re.I)
 FIRST_HAND = re.compile(r"\b(I|we|my|our)\b", re.I)
 
+REMEDY_TYPES = {
+    'software': 'software tools alternatives pricing customer complaints',
+    'service': 'services providers pricing customer experiences',
+    'physical': 'physical products equipment alternatives limitations',
+    'process': 'process changes practices workarounds limitations',
+    'community': 'community groups events peer support approaches',
+}
+
+
+def validate_brief(brief):
+    """Require an explicit, bounded task description before general research."""
+    if not isinstance(brief, dict):
+        raise ValueError('Research brief must be an object')
+    result = {}
+    for field in ('affected_person', 'task', 'desired_outcome', 'unmet_constraint'):
+        value = brief.get(field)
+        if not isinstance(value, str) or not value.strip() or len(value.strip()) > 300:
+            raise ValueError(f'Research brief {field} must contain 1–300 characters')
+        result[field] = ' '.join(value.split())
+    label = brief.get('workflow', result['task'])
+    if not isinstance(label, str) or not label.strip() or len(label.split()) > 12 or len(label) > 120:
+        raise ValueError('Research workflow must contain 1–12 words, at most 120 characters')
+    result['workflow'] = ' '.join(label.split())
+    kinds = brief.get('remedy_types', list(REMEDY_TYPES))
+    if not isinstance(kinds, list) or not kinds or any(not isinstance(k, str) or k not in REMEDY_TYPES for k in kinds):
+        raise ValueError('remedy_types must be a nonempty list of software, service, physical, process or community')
+    result['remedy_types'] = list(dict.fromkeys(kinds))
+    result['provenance'] = 'explicit_user_brief; task interpretation requires review against supporting evidence'
+    return result
+
+
+def research_queries(opportunity):
+    label = workflow(opportunity)
+    if opportunity.research_brief:
+        brief = validate_brief(opportunity.research_brief)
+        return [f"{label} {REMEDY_TYPES[kind]}" for kind in brief['remedy_types']]
+    return [f'{label} software service alternatives pricing',
+            f'{label} existing tools complaints workaround']
+
 
 def workflow(opportunity):
     """Use a workflow label, never a quoted complaint paragraph, for discovery."""
+    if opportunity.research_brief:
+        return validate_brief(opportunity.research_brief)['workflow']
     family = opportunity.priority_breakdown.get("problem_family", "")
     if isinstance(family, dict):
         family = family.get("name", family.get("label", ""))
@@ -87,6 +128,7 @@ class Researcher:
         solution["verification_detail"].update(attempted=True, status="pending")
         response = await self.http.request("POST", JEV_ENDPOINT, provider="jev", headers={"Authorization": f"Bearer {self.jev_key}"}, json={
             "model": self.jev_model, "state": {"workflow": label, "problem": opportunity.description,
+                "research_brief": opportunity.research_brief,
                 "source": {"url": source.url, "title": source.title, "content": source.content[:16000]},
                 "functional_sentences": functional, "weakness_sentences": weaknesses}, "questions": questions})
         response.raise_for_status()
@@ -118,7 +160,9 @@ class Researcher:
     async def research(self, opportunities, top=5):
         eligible = []
         for opportunity in opportunities:
-            if opportunity.investigation_priority is not None and not opportunity.priority_breakdown.get('problem_family'):
+            if opportunity.research_brief:
+                opportunity.research_brief = validate_brief(opportunity.research_brief)
+            if opportunity.investigation_priority is not None and not opportunity.priority_breakdown.get('problem_family') and not opportunity.research_brief:
                 opportunity.research_status = 'needs_workflow_definition'
                 warning = 'Define the affected workflow before solution research; a generic complaint title is insufficient for product relevance.'
                 if warning not in opportunity.unknowns:
@@ -133,15 +177,19 @@ class Researcher:
             partial = False
             opportunity.solutions = []
             label = workflow(opportunity)
-            for query in [f'{label} software service alternatives pricing',
-                          f'{label} existing tools complaints workaround']:
+            queries = research_queries(opportunity)
+            # Reserve retrieval capacity for every requested remedy type.
+            per_query = max(1, 6 // len(queries))
+            for query in queries:
                 try:
                     sources = await self.discovery.search(query, provider="brave")
                 except Exception as exc:
                     log.warning("Solution search failed for %s: %s", opportunity.id, exc)
                     partial = True
                     continue
-                for source in sources[:3]:
+                for source in sources[:per_query]:
+                    if len(seen) >= 6:
+                        break
                     if source.url in seen:
                         continue
                     seen.add(source.url)

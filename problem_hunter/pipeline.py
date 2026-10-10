@@ -77,6 +77,7 @@ class Pipeline:
                 opportunity.solutions = old.solutions
                 opportunity.potential_fixes = old.potential_fixes
                 opportunity.research_status = old.research_status
+                opportunity.research_brief = old.research_brief
         for opportunity in opportunities:
             score_opportunity(opportunity, all_problems, all_sources)
         opportunities.sort(key=_rank_key)

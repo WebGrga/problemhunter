@@ -15,7 +15,7 @@ from .http import HTTP
 from .importing import import_csv
 from .intelligence import Evaluator, SynthesisClient
 from .pipeline import Pipeline
-from .research import Researcher
+from .research import Researcher, validate_brief, research_queries
 from .reports import export_report, _rank_key
 from .storage import Store
 
@@ -62,6 +62,11 @@ def parser():
     csv.add_argument('path', type=Path)
     csv.add_argument('--map', action='append', default=[], metavar='FIELD=COLUMN', help='Map URL/title/content/author/date columns')
     sub.add_parser('report', parents=[common], help='Export stored opportunities')
+    research = sub.add_parser('research', parents=[common], help='Research a stored opportunity without reevaluation')
+    research.add_argument('id')
+    research.add_argument('--brief', type=Path, help='JSON affected_person/task/desired_outcome/unmet_constraint brief')
+    research.add_argument('--workflow', help='Explicit concise workflow override; requires a complete brief')
+    research.add_argument('--plan-only', action='store_true', help='Save and export the brief and search plan without network calls')
     bookmark = sub.add_parser('bookmark', parents=[common], help='Mark an opportunity for investigation')
     bookmark.add_argument('id')
     bookmark.add_argument('--remove', action='store_true')
@@ -89,7 +94,9 @@ async def run(args):
             store.bookmark(args.id, not args.remove)
             print(f"Updated bookmark for {args.id}")
             return 0
-        if args.command == 'report':
+        if args.command == 'research':
+            opportunities = await research_stored(args, store)
+        elif args.command == 'report':
             opportunities = store.load_opportunities()
         else:
             if not args.offline and not os.environ.get('TYPESAFE_API_KEY'):
@@ -178,6 +185,39 @@ async def run(args):
             priority = f'priority {opportunity.investigation_priority:.1f}; ' if opportunity.investigation_priority is not None else ''
             print(f"{index:2}. {priority}opportunity {opportunity.score:5.1f}/100 [{opportunity.evidence_strength}] {opportunity.title} ({opportunity.id})")
     return 0
+
+
+async def research_stored(args, store):
+    """The stored research path never creates an evaluator or regroups evidence."""
+    selected = next((item for item in store.load_opportunities() if item.id == args.id), None)
+    if selected is None:
+        raise KeyError(f'Opportunity not found: {args.id}')
+    brief = json.loads(args.brief.read_text(encoding='utf-8')) if args.brief else dict(selected.research_brief)
+    if args.workflow:
+        if not isinstance(brief, dict):
+            raise ValueError('Research brief must be an object')
+        brief['workflow'] = args.workflow
+    brief = validate_brief(brief)
+    if brief != selected.research_brief:
+        selected.solutions = []
+        selected.potential_fixes = []
+        selected.research_status = 'brief_ready'
+    selected.research_brief = brief
+    print(json.dumps({'research_brief': brief, 'search_queries': research_queries(selected)}, indent=2))
+    if not args.plan_only:
+        if args.offline:
+            raise ValueError('Use --plan-only for stored research without network calls')
+        if not os.environ.get('BRAVE_SEARCH_API_KEY'):
+            raise ValueError('Set BRAVE_SEARCH_API_KEY for solution discovery, or use --plan-only')
+        async with HTTP(store, max_requests=args.max_requests, rate=args.rate,
+                        max_cost=args.max_cost, prices=prices_from_env()) as http:
+            http.phase = 'research'
+            researcher = Researcher(Discovery(http, os.environ['BRAVE_SEARCH_API_KEY']), Extractor(http),
+                http=http, jev_key=os.environ.get('TYPESAFE_API_KEY', ''),
+                jev_model=os.environ.get('JEV_MODEL', 'jev-latest'))
+            await researcher.research([selected], top=1)
+    store.save_opportunities([selected])
+    return [selected]
 
 
 def main(argv=None):

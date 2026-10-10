@@ -12,6 +12,14 @@ old experiment files remain frozen. The six stages below remain the work queue.
 
 ## Updated priority: solution landscape first
 
+Restart recovery: PR #1 merged at `3b6d151` after CI passed on Python 3.10/3.12.
+Current development branch `feat/solution-research-briefs` implements step 1 and
+broad remedy search queries from step 2. `research ID --brief FILE --plan-only`
+saves/exports an explicit brief without calls; `research ID` researches that stored
+opportunity without reevaluation. New brief fields persist in SQLite/JSON/Markdown.
+172 local tests pass, including mocked cross-domain cases; no new paid runs.
+Named offerings, consolidation, comparison, adoption and dispositions remain open.
+
 October 10 user direction supersedes the ordering below. Buying demand and
 independent recurrence remain optional evidence/context, not prerequisites for
 researching an interesting pain point. The user will investigate those personally.

@@ -221,6 +221,12 @@ def export_report(opportunities, sources, path, format="markdown", problems=None
         if not summary["payment_evidence"]:
             lines += ["- Unknown: no verified payment evidence."]
         lines += ["", "### Existing solutions and weaknesses", ""]
+        if item.research_brief:
+            brief = item.research_brief
+            lines += ["Research brief (explicit user interpretation; review against supporting evidence):", ""]
+            for field in ('affected_person', 'task', 'desired_outcome', 'unmet_constraint', 'workflow'):
+                lines += [f"- {field.replace('_', ' ').capitalize()}: {brief.get(field, 'Unknown')}"]
+            lines += ["- Remedy types: " + ', '.join(brief.get('remedy_types', [])), ""]
         for solution in item.solutions:
             lines += [f"- [{solution.get('name', 'Research source')}](<{solution.get('url', '')}>) — {solution.get('status', 'candidate')}; relevance: {solution.get('relevance', 'unverified')}."]
             for field, label in (("functional_quote", "Functional source claim"), ("pricing_quote", "Pricing excerpt (context unverified)"), ("weakness_quote", "Weakness excerpt")):
