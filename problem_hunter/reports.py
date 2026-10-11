@@ -41,6 +41,8 @@ def _actionable_summary(item, source_map, problem_map):
                 "evaluation_mode": problem.judgments.get("evaluation_mode", problem.evidence.get("mode", "unknown"))}
         if problem.evidence.get('problem_representation'):
             card['problem_representation'] = problem.evidence['problem_representation']
+        if source and source.metadata.get('discussion_review'):
+            card['discussion_review'] = source.metadata['discussion_review']
         for name in ("genuine", "first_hand", "impact", "workaround", "loss", "literal_loss", "willingness_to_pay"):
             quote = problem.evidence.get(name)
             if not isinstance(quote, str) or not quote.strip():
@@ -203,6 +205,12 @@ def export_report(opportunities, sources, path, format="markdown", problems=None
         if not item.problem_ids:
             lines += ["- No individual problem judgments recorded."]
         for card in summary["evidence_cards"][:3]:
+            discussion = card.get('discussion_review')
+            if discussion:
+                reply = discussion.get('evidence')
+                lines += [f"- Discussion review: {discussion['status']} (model interpretation; bounded visible replies)."]
+                if reply:
+                    lines += [f"  - Separate reply by {reply['author']} on {reply['published_at']}: {_excerpt(reply['quote'], 300)}"]
             representation = card.get('problem_representation')
             if representation:
                 lines += ['- Actor/task review (model interpretation; exact source excerpts):']
@@ -233,7 +241,7 @@ def export_report(opportunities, sources, path, format="markdown", problems=None
         lines += ["", "### Existing solutions and weaknesses", ""]
         if item.research_brief:
             brief = item.research_brief
-            lines += ["Research brief (explicit user interpretation; review against supporting evidence):", ""]
+            lines += ["Research brief (explicit interpretation; review against supporting evidence):", ""]
             for field in ('affected_person', 'task', 'desired_outcome', 'unmet_constraint', 'workflow'):
                 lines += [f"- {field.replace('_', ' ').capitalize()}: {brief.get(field, 'Unknown')}"]
             lines += ["- Remedy types: " + ', '.join(brief.get('remedy_types', [])), ""]

@@ -73,6 +73,33 @@ def forum_post(soup):
     return body.get_text(' ', strip=True), author, published
 
 
+def discussion_context(soup, original, url):
+    """Keep bounded, attributed visible replies separate from the complaint."""
+    elements = soup.select('article.message--post, .crawler-post, .lia-message-view-display')
+    original = (' '.join(original[0].split()), *original[1:])
+    posts, seen, skipped = [], set(), 0
+    for index, element in enumerate(elements[:40]):
+        try:
+            body, author, published = forum_post(BeautifulSoup(str(element), 'html.parser'))
+            body = ' '.join(body.split())
+            if not author:
+                raise ValueError('Reply author missing')
+            date.fromisoformat(published[:10])
+            identity = (body, author, published)
+            if not body or identity == original or identity in seen:
+                continue
+            seen.add(identity)
+            posts.append({'content': body[:2400], 'author': author, 'published_at': published,
+                'page_url': url, 'position': index, 'truncated': len(body) > 2400})
+        except (ValueError, TypeError):
+            skipped += 1
+    # Include early answers and recent follow-ups, not only the proposed solution.
+    selected = posts if len(posts) <= 8 else posts[:3] + posts[-5:]
+    return {'posts': selected, 'visible_replies': len(posts), 'skipped_unattributed': skipped,
+        'bounded': len(elements) > 40 or len(posts) > 8 or any(p['truncated'] for p in selected),
+        'coverage': 'visible page only; not the whole thread or present-day feature verification'}
+
+
 def page_dates(soup):
     """Preserve original publication separately from modification/search dates."""
     def meta(*keys):
@@ -198,6 +225,7 @@ class Extractor:
                 modified = None
                 post = None
                 thread_solution = False
+                context = None
             else:
                 soup = BeautifulSoup(response.text, "html.parser")
                 title = soup.title.get_text(" ", strip=True) if soup.title else urlsplit(current).hostname
@@ -205,6 +233,7 @@ class Extractor:
                 author = author_tag.get("content") if author_tag else None
                 published, modified = page_dates(soup)
                 post = forum_post(soup)
+                context = discussion_context(soup, post, current) if post else None
                 thread_solution = bool(post and (title.lstrip().startswith('Solved:') or
                     soup.select_one('.lia-message-view-display .accepted-solution-link') is not None))
                 if not published:
@@ -234,6 +263,7 @@ class Extractor:
                     'extraction_quality': 'single_post_body' if post else 'short_fragment' if len(content) < 300 else 'body_candidate',
                     'speaker_scope': 'single_forum_post' if post else 'page; speaker attribution unverified',
                     **({'thread_solution_detected': True} if thread_solution else {}),
+                    **({'discussion_context': context} if context else {}),
                     **({'evidence_limit': 'Extracted page fragment under 300 characters; completeness unverified'} if not post and len(content) < 300 else {})})
             return deduplicate([source])[0]
         raise ValueError("Too many redirects")

@@ -89,3 +89,47 @@ async def semantic_group(problems, sources, llm):
         raise ValueError("Semantic grouping must partition the supplied problem ids exactly")
     lookup = {p.id: p for p in problems}
     return [_opportunity([lookup[i] for i in group], sources) for group in groups]
+
+
+async def workflow_group(problems, sources, judge, max_pairs=16):
+    """Bounded same-failure decisions; every member must match every other member."""
+    from itertools import combinations
+    from .discussion import choice
+    source_map = {source.id: source for source in sources}
+    def state(problem):
+        representation = problem.evidence.get('problem_representation', {})
+        return {'failure': problem.evidence.get('impact'), 'workflow': representation.get('excerpts', {}),
+            'context': source_map[problem.source_id].content[:4000] if problem.source_id in source_map else '',
+            'scope': problem.judgments.get('triage', {}).get('research_scope')}
+    candidates = []
+    for left, right in combinations(problems, 2):
+        if left.source_id == right.source_id or left.category != right.category:
+            continue
+        if any(p.judgments.get('triage', {}).get('need_status') == 'historical_resolved' or
+                p.judgments.get('first_hand', 0) < .6 for p in (left, right)):
+            continue
+        def terms(problem):
+            value = state(problem)
+            return {term for term in tokens(value['context'] or value['failure'] or '') if len(term) > 2}
+        a, b = terms(left), terms(right)
+        overlap = len(a & b) / max(1, min(len(a), len(b)))
+        if len(a & b) >= 3 and overlap >= .15:
+            candidates.append((overlap, left, right))
+    decisions = {}
+    for _, left, right in sorted(candidates, key=lambda row: (-row[0], row[1].id, row[2].id))[:max_pairs]:
+        answer = await judge({'left': state(left), 'right': state(right)}, {'equivalent': choice(
+            'Do these people experience the SAME specific failure while performing the SAME task, with compatible remaining constraints? Shared brand, industry, vocabulary or a broad workflow alone is insufficient. Different root failures must remain separate. Uncertainty means keep separate.',
+            {'yes': 'Same specific experienced failure and task', 'unknown': 'Different or not established'})})
+        decisions[frozenset((left.id, right.id))] = answer['equivalent'] == 'yes'
+    groups = []
+    for problem in problems:
+        match = next((g for g in groups if all(decisions.get(frozenset((problem.id, other.id)), False) for other in g)), None)
+        if match is None:
+            groups.append([problem])
+        else:
+            match.append(problem)
+    results = [_opportunity(group, sources) for group in groups]
+    for item in results:
+        if len(item.problem_ids) > 1:
+            item.unknowns.append('Workflow grouping is a bounded model interpretation; equivalent failure and independent identities require review.')
+    return results

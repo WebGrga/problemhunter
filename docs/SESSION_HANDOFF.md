@@ -1,40 +1,38 @@
 # Session handoff — October 11, 2026
 
-Read this, then [NEXT_STEPS.md](NEXT_STEPS.md). Do not load historical documents
-unless a specific investigation requires them.
+Read this, then [NEXT_STEPS.md](NEXT_STEPS.md). Load older artifacts only for a
+specific investigation. The user wants measured usefulness, fresh evidence,
+one-command operation and minimal complexity. Tested merges and removing merged
+branches are authorized. No outreach is authorized.
 
-The user prioritizes measured usefulness, fresh evidence and minimal complexity.
-Merging tested changes and removing merged branches are authorized. No outreach is
-authorized. The shared paid API ceiling is $1; do not reset or renew it.
+Shared API cap is $1. Conservative cumulative estimated spend: **$0.711945032**;
+remaining **$0.288054968**. This iteration added $0.152018806. Ledger:
+`reports/fresh-e2e-2026-10-10/ledger.db`. Accounting includes an earlier $0.12
+reserve for failed sandbox connections, not confirmed billed calls. The ledger
+contains imported request logs from trial databases; invocation caps are not a
+shared cap. Do not reset it. No vidIQ credits used this iteration.
 
-Conservative cumulative estimated spend: **$0.559926226**, remaining **$0.440073774**.
-Authoritative ledger: `reports/fresh-e2e-2026-10-10/ledger.db`. This includes $0.12
-reserved for failed sandbox connection attempts, not confirmed billed calls.
-Latest successful source tests added $0.068333698. vidIQ separately used 80 existing
-credits with no purchase. Request ceilings are per invocation; enforce shared cap.
+Retained general-v5 improvements: separately attributed bounded visible replies,
+resolution/remedy/rejected-workaround review, and up to 16 same-failure grouping
+comparisons with complete-link membership. Original-author confirmed resolution
+excludes a current lead. Replies never count as original complaint or independent
+complainants. Promoted remedies can still be misclassified; review is mandatory.
+Base classifier/representation questions remain unchanged. Production/v4 grouping
+is unchanged. 173 implementation tests pass, not a quality score.
 
-Latest fresh tests used unchanged general-v5 questions. Shopify: 20 full attributed
-posts, 6 primary and 2 review results; one review result was a promotional reply.
-Square: 12 pages, 2 duplicates and 3 old posts removed, 7 full attributed sources.
-All seven initially qualified, but replies reveal fix/resolution evidence for two.
-Three solution-marked threads now require review; cached replay verified this,
-without claiming they are necessarily resolved. YouTube: 27 comments/replies from
-six videos, 4 verified-owner exclusions, 23 evaluated, 2 review results and no
-primary result. One real inventory complaint; no useful detailing booking complaint.
-Owner identity was unresolved for three channels; do not call their authors verified
-viewers. Full comments and author identities are absent from exported summaries.
+Four fresh hunts: restaurant orders 8 posts/4 retained/2 clearly relevant; customer
+returns 12/3/0; manufacturing production 7/0/0; recurring service invoices 5/4/1.
+Manual judgments, selected small samples. Some URLs overlap prior samples.
+First three runs used experimental auto-brief v3, fourth stricter v4; these helpers
+were discarded after incoherent queries and invalid platform interpretations.
+Final-code cached replay retained the same 11 findings and stopped research at
+needs_workflow_definition. Do not call this fresh final-code end-to-end validation.
+Prior Shopify/Square replay correctly grouped two overselling complaints while
+keeping a separate manual-sync burden apart. Autonomous research remains unproven.
 
-Retained changes support Discourse and Square HTML while isolating one speaker,
-author and original date, excluding quotes. Solution markers flag review without
-retuning questions. 166 tests pass locally. See CURRENT_RESULTS for actual limits.
-Two normal hunt commands still stopped research at needs_workflow_definition.
-An agent-prepared grounded Square brief completed a partial remedy search, with
-one candidate and unknown fit. Autonomous remedy research remains unproven.
-Three Shopify inventory-sync complaints were left separate by grouping.
-A separate PO complaint is weakened by Shopify's October 6 reporting/export update.
-
-Artifacts: `reports/source-tests-2026-10-11/`. Store raw comments only transiently;
-keep the deidentified summary. Current docs remain four plus README, no new docs.
-Earlier mobile-detailing and community-probe evidence remains under reports, and
-historical fresh audit is compressed under reports/archives. No evaluator question
-changes were made. Check live Git/GitHub state and CI rather than caching it here.
+Artifacts: `reports/workflow-improvement-2026-10-11/`, including readable final
+reports/yield audits/replay summaries and byte-verified raw-audit.tar.gz. Earlier
+source audit remains in `reports/source-tests-2026-10-11/`. Current docs remain
+four plus README; no new documentation collection. Next fix actor/task scope
+leakage before revisiting workflow automation; do not add providers or scores.
+Check live Git/GitHub status and CI rather than caching branch state here.

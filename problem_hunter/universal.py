@@ -86,6 +86,27 @@ class UniversalEvaluator:
         self.rubric_fingerprint = rubric_hash(self.rubric) + ':' + SELECTION_VERSION + ':' + hashlib.sha256(scope.encode()).hexdigest()
         if self.rubric['version']=='general-v5':
             self.rubric_fingerprint += ':' + hashlib.sha256(json.dumps(representation_questions({}),sort_keys=True).encode()).hexdigest()
+            from .discussion import VERSION
+            self.rubric_fingerprint += ':' + VERSION
+
+    async def _select(self, state, questions):
+        response = await self.http.request('POST', 'https://api.typesafe.ai/v1/systemone', provider='jev',
+            headers={'Authorization': f'Bearer {self.key}'},
+            json={'model': self.model, 'state': state, 'questions': questions})
+        response.raise_for_status()
+        payload = response.json()
+        if not isinstance(payload, dict) or not isinstance(payload.get('model'), str) or not isinstance(payload.get('answers'), dict):
+            raise ValueError('Incomplete workflow response')
+        usage = payload.get('usage')
+        if not isinstance(usage, dict) or any(type(usage.get(k)) is not int or usage[k] < 0 for k in ('input_tokens', 'output_tokens')):
+            raise ValueError('Missing workflow token usage')
+        return {name: parse_choice(payload['answers'].get(name), q['criteria'])[0] for name, q in questions.items()}
+
+    async def group(self, problems, sources):
+        from .grouping import group_problems, workflow_group
+        if self.rubric['version'] != 'general-v5':
+            return group_problems(problems, sources)
+        return await workflow_group(problems, sources, self._select)
 
     async def _representation(self, source, state, impact, workaround):
         questions = representation_questions(state['passages'])
@@ -110,6 +131,7 @@ class UniversalEvaluator:
             raise ValueError('TYPESAFE_API_KEY is required for universal evaluation')
         problems = []
         for source in sources:
+            source.metadata.pop('discussion_review', None)
             state, questions, truncated = build_request(source, self.scope, self.rubric)
             if not state['passages']:
                 source.metadata['triage'] = {'accepted': False, 'route': 'excluded', 'rejection_reasons': ['empty source']}
@@ -153,6 +175,8 @@ class UniversalEvaluator:
                     review.append('Current unresolved experience not established: ' + selected['experience_status'])
                 parsed['need_status'] = {'continuing': 'ongoing', 'resolved': 'historical_resolved',
                     'retrospective': 'unknown', 'unknown': 'unknown'}[selected['experience_status']]
+                if selected['experience_status'] == 'resolved':
+                    reasons.append('The described failure is already resolved at publication')
                 if selected['workaround_same_speaker'] != 'yes' or source.content_kind == 'snippet':
                     workaround = None
                 since, until = source.metadata.get('requested_since'), source.metadata.get('requested_until')
@@ -178,6 +202,32 @@ class UniversalEvaluator:
                 review.append('Snippet may mix speakers; original attribution unverified')
             if truncated:
                 review.append('Only a bounded part of the source was evaluated')
+            if representation and not reasons:
+                from .discussion import context_request
+                if source.metadata.get('discussion_context', {}).get('posts'):
+                    context_state, selection_questions, excerpts = context_request(source, impact)
+                    assessed = await self._select(context_state, selection_questions)
+                    relevant = [(excerpts[key], status) for key, status in assessed.items() if status != 'unknown']
+                    evidence, status = max(relevant, key=lambda pair: (pair[0]['published_at'], pair[0].get('position', 0)), default=(None, 'unknown'))
+                    # A later confirmation must be this author's dated experience.
+                    if status == 'author_resolved' and not evidence['same_author']:
+                        status = 'remedy_reported'
+                    elif status == 'author_resolved' and evidence['published_at'][:10] < (source.published_at or '')[:10]:
+                        status = 'unknown'
+                    source.metadata['discussion_review'] = {'status': status, 'evidence': evidence,
+                        'reply_statuses': assessed,
+                        'coverage': 'bounded visible replies; not present-day remedy verification'}
+                    if status == 'author_resolved':
+                        reasons.append('Original complainant confirms resolution in a later reply')
+                        parsed['need_status'] = 'historical_resolved'
+                    elif status == 'remedy_reported':
+                        review.append('A reply reports a remedy or vendor fix; verify it before treating this as an unmet need')
+                        parsed['need_status'] = 'unknown'
+                    elif status in {'rejected', 'continuing'}:
+                        review.append('Dated replies support continuing burden; current remedy fit still requires verification')
+                context = source.metadata.get('discussion_context', {})
+                if context.get('bounded') or context.get('skipped_unattributed'):
+                    review.append('Visible discussion context is incomplete; omitted replies may change the interpretation')
             if impact and parsed['pain'] <= 1:
                 review.append('Selected impact and low severity need review')
             signal = parsed['payment_signal']

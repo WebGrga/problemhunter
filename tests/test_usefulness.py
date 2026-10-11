@@ -71,8 +71,8 @@ async def test_date_filters_and_invalid_window_before_requests():
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize('fit,failure,accepted',[('adjacent','yes',False),('yes','no',False),('yes','yes',True)])
-async def test_v5_actor_task_and_positive_outcome_gates(tmp_path,fit,failure,accepted):
+@pytest.mark.parametrize('fit,failure,reason',[('adjacent','yes','does not match both actor'),('yes','no','not an actual experienced failure'),('yes','yes','already resolved')])
+async def test_v5_actor_task_and_positive_outcome_gates(tmp_path,fit,failure,reason):
     def handler(request):
         payload=json.loads(request.content);q=payload['questions']
         if 'actor_task_fit' not in q:
@@ -84,13 +84,10 @@ async def test_v5_actor_task_and_positive_outcome_gates(tmp_path,fit,failure,acc
         async with HTTP(store,rate=0,transport=httpx.MockTransport(handler)) as http:
             groups=await Pipeline(store,UniversalEvaluator(http,'fixture',rubric='general-v5')).process([
                 Source('https://example.org/post','Feedback','I receive vague client feedback. Another commenter recommends a tool.',author='alice')])
-        assert bool(groups)==accepted
-        if accepted:
-            p=store.load_problems()[0]
-            assert p.evidence['workaround'] is None
-            assert p.evidence['problem_representation']['selections']['experience_status']=='resolved'
-            assert p.judgments['triage']['need_status']=='historical_resolved'
-            assert groups[0].review_required
+        assert not groups
+        triage = store.load_sources()[0].metadata['triage']
+        assert triage['need_status'] == 'historical_resolved'
+        assert any(reason in rejection for rejection in triage['rejection_reasons'])
 
 
 def test_fixed_subject_quotes_include_late_price_and_do_not_borrow_competitor():

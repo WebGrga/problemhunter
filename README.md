@@ -66,7 +66,12 @@ This is not universal forum support or proof of current unmet need.
 Permitted Discourse and Square community pages are supported. For example, use
 `--topic 'site:community.shopify.com inventory'` with an appropriate `--scope` and
 the same hunt options. This changes the target, not the evaluator questions.
-Thread solution markers trigger review; later replies can contradict an answer.
+Visible replies are retained separately with author/date and bounded coverage.
+General-v5 reviews reported fixes and rejected workarounds; confirmed original-author
+resolution excludes a current lead. These labels require present-day verification.
+General-v5 also makes up to 16 model comparisons to group the same specific
+failure/task, keeping uncertain pairs separate. These are experimental improvements,
+not proof of current demand or general grouping accuracy.
 YouTube was tested separately through vidIQ and is not a built-in hunt collector.
 
 Investigation priority ranks attention, not business potential. Commercial scores
