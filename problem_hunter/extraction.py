@@ -1,7 +1,7 @@
 """Bounded public-page extraction with fail-closed robots policy."""
 import asyncio
 from dataclasses import replace
-from datetime import date
+from datetime import date, datetime
 import ipaddress
 import json
 import socket
@@ -40,13 +40,27 @@ def forum_post(soup):
         author = post.get('data-author')
         timestamp = post.select_one('time[datetime]')
     else:
-        post = soup.select_one('[itemtype$="/DiscussionForumPosting"]')
+        post = soup.select_one('.crawler-post, [itemtype$="/DiscussionForumPosting"], .lia-message-view-display')
         if post is None:
             return None
+        if 'lia-message-view-display' in post.get('class', []):
+            body = post.select_one('[itemprop="text"]')
+            author_tag = post.select_one('.lia-user-name-link')
+            stamp = post.select_one('.local-date')
+            if body is None or author_tag is None or stamp is None:
+                raise ValueError('Community post attribution incomplete')
+            try:
+                published = datetime.strptime(stamp.get_text(strip=True).replace('\u200e', ''), '%m-%d-%Y').date().isoformat()
+            except ValueError as exc:
+                raise ValueError('Community post date is not an absolute date') from exc
+            for quote in body.select('blockquote'):
+                if quote.parent is not None:
+                    quote.decompose()
+            return body.get_text(' ', strip=True), author_tag.get_text(' ', strip=True), published
         body = post.select_one('[itemprop="text"]')
         author_tag = post.select_one('[itemprop="author"] [itemprop="name"]')
         author = author_tag.get_text(' ', strip=True) if author_tag else None
-        timestamp = post.select_one('[itemprop="datePublished"]')
+        timestamp = post.select_one('time[datetime], [itemprop="datePublished"]')
     if body is None or not author or timestamp is None:
         raise ValueError('Forum post body, author or publication date missing')
     published = timestamp.get('datetime') or timestamp.get('content')
@@ -183,6 +197,7 @@ class Extractor:
                 title, content, author, published = urlsplit(current).hostname, response.text, None, None
                 modified = None
                 post = None
+                thread_solution = False
             else:
                 soup = BeautifulSoup(response.text, "html.parser")
                 title = soup.title.get_text(" ", strip=True) if soup.title else urlsplit(current).hostname
@@ -190,6 +205,8 @@ class Extractor:
                 author = author_tag.get("content") if author_tag else None
                 published, modified = page_dates(soup)
                 post = forum_post(soup)
+                thread_solution = bool(post and (title.lstrip().startswith('Solved:') or
+                    soup.select_one('.lia-message-view-display .accepted-solution-link') is not None))
                 if not published:
                     time_tag = soup.find("time", attrs={"datetime": True, 'itemprop': 'datePublished'})
                     published = time_tag.get("datetime") if time_tag else None
@@ -216,6 +233,7 @@ class Extractor:
                     'date_provenance': 'page publication metadata' if published else 'unknown',
                     'extraction_quality': 'single_post_body' if post else 'short_fragment' if len(content) < 300 else 'body_candidate',
                     'speaker_scope': 'single_forum_post' if post else 'page; speaker attribution unverified',
+                    **({'thread_solution_detected': True} if thread_solution else {}),
                     **({'evidence_limit': 'Extracted page fragment under 300 characters; completeness unverified'} if not post and len(content) < 300 else {})})
             return deduplicate([source])[0]
         raise ValueError("Too many redirects")

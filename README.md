@@ -63,6 +63,12 @@ excluding quoted replies. Known original publication dates outside the requested
 window are dropped before evaluation; the yield audit lists these exclusions.
 This is not universal forum support or proof of current unmet need.
 
+Permitted Discourse and Square community pages are supported. For example, use
+`--topic 'site:community.shopify.com inventory'` with an appropriate `--scope` and
+the same hunt options. This changes the target, not the evaluator questions.
+Thread solution markers trigger review; later replies can contradict an answer.
+YouTube was tested separately through vidIQ and is not a built-in hunt collector.
+
 Investigation priority ranks attention, not business potential. Commercial scores
 are evidence lower bounds; zero with unknown evidence is not evidence of no market.
 Search snippets can mix speakers, remedies and promotion. Exact quotations prevent

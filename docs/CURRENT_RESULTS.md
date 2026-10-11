@@ -1,9 +1,65 @@
 # Current usefulness review — October 11, 2026
 
-**The app runs, but reliable autonomous opportunity discovery is not demonstrated.**
-The new mobile-detailing test produced no validated business opportunity and no
-completed existing-remedy comparison. Cleanup makes maintenance smaller; it does
-not improve these usefulness results by itself.
+**Business-tool communities now provide useful complaint evidence. Autonomous
+opportunity discovery and existing-remedy comparison remain unproven.**
+
+## Fresh alternative-source test — October 11
+
+Two ordinary hunts targeted Shopify inventory and Square appointments using
+`site:community.shopify.com inventory` and `site:community.squareup.com appointments`.
+Each used four searches, the January 2025–October 2026 window and unchanged
+general-v5 questions; caps were 20 and 12 sources respectively. Brave discovered
+the URLs; the evidence came from permitted community pages. No HN results appeared.
+This tests different evidence sources, not an independent replacement search engine.
+
+| Sample | Collection | Evaluator outcome | Review verdict |
+| --- | --- | --- | --- |
+| Shopify inventory | 20/20 complete posts with authors and dates | 6 primary, 2 review, 12 excluded | Six primary posts describe credible merchant burdens. One review result is a promoted-app reply, not the complainant's experience. |
+| Square appointments | 12 pages fetched; 2 duplicates and 3 old posts removed; 7 complete current posts | All 7 initially primary | Real booking complaints, but two have subsequent fix/resolution evidence. Three threads have solution markers requiring review. |
+| YouTube inventory/detailing | 6 videos, 16 threads plus 11 returned replies | 4 verified owner comments removed; 23 evaluated; 2 review results, 0 primary | One detailed inventory complaint, one resolved maker promotion. No useful detailing booking complaint. |
+
+YouTube owner identity was resolved for three channels: nine non-owner comments
+were eligible for verified-viewer counts; fourteen comments from other channels
+remained unverified. Results are not a recurring audience pattern. Author identities
+and full comments are omitted from the exported summary. Collection used the
+connected vidIQ comment-insights workflow, not the app's one-command collector.
+
+The most useful evidence includes an inventory-adjustment workflow with accidental
+negative quantities and repeated correction, and Square merchants reporting unused
+bookable time despite changing settings. The latter thread also contains another
+merchant's similar report. Three separately collected Shopify posts describe
+cross-channel inventory synchronization burdens; the current grouper left them
+separate. Observed identities and similar reports are not verified demand.
+
+Reading replies changed the conclusions. Square's missing Register appointments
+thread reports an implemented vendor fix; the notification thread reports a support
+reset restoring delivery. Conversely, the accepted add-on-services answer was
+rejected by the original merchant. A solution badge alone proves neither resolution
+nor a remaining gap. The retained code now flags it for review without merging
+other speakers into the complaint. A cached replay moved all three marked sources
+to review, with zero network calls; that replay is not fresh validation.
+
+A separate purchase-order probe found a genuine April complaint, but Shopify
+[announced purchase-order reporting/export on October 6](https://changelog.shopify.com/posts/analyze-purchase-orders-in-shopify-analytics).
+It would be misleading to recommend building basic PO exports from that complaint.
+
+The full automatic hunts stopped remedy research at `needs_workflow_definition`.
+An agent-prepared, source-grounded brief then completed a bounded Square remedy
+search: three searches, nine model requests, partial result, one named candidate
+with unknown task/constraint fit. It did not establish a useful comparison.
+Manual brief preparation and present-day remedy review are still required.
+
+Successful collection, evaluation and research cost an estimated **$0.068333698**.
+The ledger additionally reserves **$0.12** for failed sandbox connection attempts;
+these are not confirmed billed calls. Conservative cumulative accounting is
+**$0.559926226 of $1**, leaving **$0.440073774**. vidIQ separately consumed **80
+existing credits**, with no purchase. Local artifacts are in
+`reports/source-tests-2026-10-11/`; 166 implementation tests pass.
+
+Conclusion: prioritize business-tool communities for collecting concrete problems.
+YouTube is supplemental on this sample. Next improve reply/remedy context and
+workflow definition, then grouping; more scoring or provider infrastructure would
+not address the demonstrated failures.
 
 ## Fresh unchanged test
 

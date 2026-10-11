@@ -135,6 +135,8 @@ class UniversalEvaluator:
             workaround = state['passages'].get(parsed['workaround_excerpt'])
             payment = state['passages'].get(parsed['payment_excerpt'])
             reasons, review, payment_review = [], answer_flags, []
+            if source.metadata.get('thread_solution_detected'):
+                review.append('Thread has a solution marker; review the answer and later replies before treating the complaint as unresolved')
             representation = None
             if self.rubric['version'] == 'general-v5' and impact:
                 representation = await self._representation(source, state, impact, workaround)

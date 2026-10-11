@@ -3,47 +3,38 @@
 Read this, then [NEXT_STEPS.md](NEXT_STEPS.md). Do not load historical documents
 unless a specific investigation requires them.
 
-The user prioritizes measured usefulness, fresh AI-era evidence and minimal
-complexity. They authorized merging tested changes into main and removing obsolete
-branches, and a shared $1 maximum for fresh research. No customer outreach is
-authorized. Do not reset or silently renew the cap.
+The user prioritizes measured usefulness, fresh evidence and minimal complexity.
+Merging tested changes and removing merged branches are authorized. No outreach is
+authorized. The shared paid API ceiling is $1; do not reset or renew it.
 
-Current cumulative estimated API spend: **$0.371592528**, remaining **$0.628407472**.
-The authoritative request ledger is
-`reports/fresh-e2e-2026-10-10/ledger.db`. The October 11 detailing run added
-$0.021169028. Application ceilings are per invocation, not shared-budget enforcement.
+Conservative cumulative estimated spend: **$0.559926226**, remaining **$0.440073774**.
+Authoritative ledger: `reports/fresh-e2e-2026-10-10/ledger.db`. This includes $0.12
+reserved for failed sandbox connection attempts, not confirmed billed calls.
+Latest successful source tests added $0.068333698. vidIQ separately used 80 existing
+credits with no purchase. Request ceilings are per invocation; enforce shared cap.
 
-Latest collection continuation: supported forum HTML now yields one post body,
-author and timestamp, with quoted speakers removed. Known original dates outside
-the requested window are excluded before evaluation, with separate audit counts.
-Two permitted live forum fetches verified extraction and correctly excluded posts
-from 2009 and 2016. A four-query search-diversification trial yielded 19 Reddit
-snippets and one irrelevant HN comment; no usable current full discussions. Its
-search change was discarded. Trial spend was $0.024920804; its request logs were
-copied idempotently into the shared ledger. The live probe added no estimated cost.
-Artifacts: `reports/collection-improvement-2026-10-11/`. No evaluator questions
-changed. 162 tests pass locally. Current complaint acquisition remains unresolved.
+Latest fresh tests used unchanged general-v5 questions. Shopify: 20 full attributed
+posts, 6 primary and 2 review results; one review result was a promotional reply.
+Square: 12 pages, 2 duplicates and 3 old posts removed, 7 full attributed sources.
+All seven initially qualified, but replies reveal fix/resolution evidence for two.
+Three solution-marked threads now require review; cached replay verified this,
+without claiming they are necessarily resolved. YouTube: 27 comments/replies from
+six videos, 4 verified-owner exclusions, 23 evaluated, 2 review results and no
+primary result. One real inventory complaint; no useful detailing booking complaint.
+Owner identity was unresolved for three channels; do not call their authors verified
+viewers. Full comments and author identities are absent from exported summaries.
 
-The unchanged general-v5 command collected four sources, retained one ambiguous
-snippet, found no corroboration, and could not automatically research solutions.
-The honest conclusion remains: useful autonomous opportunity discovery is unproven.
-Read [CURRENT_RESULTS.md](CURRENT_RESULTS.md) for the compact evidence review.
+Retained changes support Discourse and Square HTML while isolating one speaker,
+author and original date, excluding quotes. Solution markers flag review without
+retuning questions. 166 tests pass locally. See CURRENT_RESULTS for actual limits.
+Two normal hunt commands still stopped research at needs_workflow_definition.
+An agent-prepared grounded Square brief completed a partial remedy search, with
+one candidate and unknown fit. Autonomous remedy research remains unproven.
+Three Shopify inventory-sync complaints were left separate by grouping.
+A separate PO complaint is weakened by Shopify's October 6 reporting/export update.
 
-Cleanup removed invoice v1–v3 benchmark/evaluator code, five experiment scripts,
-obsolete experiment tests and duplicated history documents. Core provenance,
-budget, persistence, scoring and solution-research tests remain.
-Production and general-v4/v5 question definitions were not edited. Universal typed
-answer validation now lives with the other evaluators, avoiding a benchmark import.
-
-Local reports now retain:
-- the shared ledger and mobile-detailing exports;
-- the final client-feedback comparison in `reports/client-feedback-2026-10-10/`;
-- a byte-verified compressed raw audit in
-  `reports/archives/fresh-audit-2026-10-10.tar.gz`;
-- the small pre-cleanup Git history bundles in `reports/backups/`.
-
-Old invoice/demo report directories were deleted. The archive preserves fresh
-source/model evidence without leaving 160 loose intermediate files. It is for
-specific debugging, not routine reading. Git history preserves deleted tracked docs.
-Check Git/GitHub for live branch and CI state; do not treat documentation as a
-branch-state cache.
+Artifacts: `reports/source-tests-2026-10-11/`. Store raw comments only transiently;
+keep the deidentified summary. Current docs remain four plus README, no new docs.
+Earlier mobile-detailing and community-probe evidence remains under reports, and
+historical fresh audit is compressed under reports/archives. No evaluator question
+changes were made. Check live Git/GitHub state and CI rather than caching it here.
