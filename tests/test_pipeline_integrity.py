@@ -48,6 +48,20 @@ async def test_title_and_provenance_upgrade_invalidate_evaluation(tmp_path):
         assert evaluator.count == 3
 
 
+@pytest.mark.asyncio
+async def test_outdated_original_post_never_reaches_evaluator(tmp_path):
+    class Evaluator:
+        offline, model = False, 'fixture'
+        async def evaluate(self, sources):
+            assert sources == []
+            return []
+    source = Source('https://example.com/post', 'Recently indexed', 'Old complaint',
+        metadata={'original_published_at': '2014-01-01', 'requested_since': '2025-01-01'})
+    with Store(tmp_path / 'store.db') as store:
+        assert await Pipeline(store, Evaluator()).process([source]) == []
+        assert store.load_sources() == []
+
+
 def test_old_request_logs_migrate_without_loss(tmp_path):
     path = tmp_path / 'old.db'
     with sqlite3.connect(path) as connection:

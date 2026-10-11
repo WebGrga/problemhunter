@@ -1,6 +1,7 @@
 """Bounded public-page extraction with fail-closed robots policy."""
 import asyncio
 from dataclasses import replace
+from datetime import date
 import ipaddress
 import json
 import socket
@@ -15,6 +16,47 @@ from .models import Source
 
 USER_AGENT = "ProblemHunter"
 MAX_BYTES = 2_000_000
+
+
+def date_exclusion(source):
+    """Search freshness never overrides a known original post publication date."""
+    published = source.metadata.get('original_published_at')
+    try:
+        original = date.fromisoformat(published[:10]) if isinstance(published, str) else None
+        since = date.fromisoformat(source.metadata['requested_since']) if source.metadata.get('requested_since') else None
+        until = date.fromisoformat(source.metadata['requested_until']) if source.metadata.get('requested_until') else None
+    except ValueError:
+        return None  # Unknown dates remain unverified, not invented.
+    if original and ((since and original < since) or (until and original > until)):
+        return 'Original publication outside requested dates'
+    return None
+
+
+def forum_post(soup):
+    """Extract the first visible forum post separately from replies and quotes."""
+    post = soup.select_one('article.message--post')
+    if post is not None:
+        body = post.select_one('.message-body .bbWrapper')
+        author = post.get('data-author')
+        timestamp = post.select_one('time[datetime]')
+    else:
+        post = soup.select_one('[itemtype$="/DiscussionForumPosting"]')
+        if post is None:
+            return None
+        body = post.select_one('[itemprop="text"]')
+        author_tag = post.select_one('[itemprop="author"] [itemprop="name"]')
+        author = author_tag.get_text(' ', strip=True) if author_tag else None
+        timestamp = post.select_one('[itemprop="datePublished"]')
+    if body is None or not author or timestamp is None:
+        raise ValueError('Forum post body, author or publication date missing')
+    published = timestamp.get('datetime') or timestamp.get('content')
+    if not published:
+        raise ValueError('Forum post publication date missing')
+    # Quotes from earlier speakers are not this author's experience.
+    for quote in body.select('blockquote, .bbCodeBlock--quote'):
+        if quote.parent is not None:
+            quote.decompose()
+    return body.get_text(' ', strip=True), author, published
 
 
 def page_dates(soup):
@@ -140,12 +182,14 @@ class Extractor:
             if content_type == "text/plain":
                 title, content, author, published = urlsplit(current).hostname, response.text, None, None
                 modified = None
+                post = None
             else:
                 soup = BeautifulSoup(response.text, "html.parser")
                 title = soup.title.get_text(" ", strip=True) if soup.title else urlsplit(current).hostname
                 author_tag = soup.find("meta", attrs={"name": "author"})
                 author = author_tag.get("content") if author_tag else None
                 published, modified = page_dates(soup)
+                post = forum_post(soup)
                 if not published:
                     time_tag = soup.find("time", attrs={"datetime": True, 'itemprop': 'datePublished'})
                     published = time_tag.get("datetime") if time_tag else None
@@ -159,17 +203,20 @@ class Extractor:
                 body = main if main is not None and (article is None or len(main.get_text()) > 2 * len(article.get_text())) else article
                 body = body if body is not None else main if main is not None else soup.body or soup
                 content = body.get_text(" ", strip=True)
+                if post:
+                    content, author, published = post
             content = " ".join(content.split())
             if not content:
                 raise ValueError("Page has no extractable content")
             source = Source(url=original_url, title=title or current, content=content[:100_000],
                 source=urlsplit(current).hostname or "web", author=author, published_at=published,
-                content_kind='snippet' if len(content) < 300 else 'full_text',
+                content_kind='full_text' if post or len(content) >= 300 else 'snippet',
                 metadata={"retrieved_url": current, "extraction": "public page", "truncated": len(content) > 100_000,
                     'original_published_at': published, 'modified_at': modified,
                     'date_provenance': 'page publication metadata' if published else 'unknown',
-                    'extraction_quality': 'short_fragment' if len(content) < 300 else 'body_candidate',
-                    **({'evidence_limit': 'Extracted page fragment under 300 characters; completeness unverified'} if len(content) < 300 else {})})
+                    'extraction_quality': 'single_post_body' if post else 'short_fragment' if len(content) < 300 else 'body_candidate',
+                    'speaker_scope': 'single_forum_post' if post else 'page; speaker attribution unverified',
+                    **({'evidence_limit': 'Extracted page fragment under 300 characters; completeness unverified'} if not post and len(content) < 300 else {})})
             return deduplicate([source])[0]
         raise ValueError("Too many redirects")
 

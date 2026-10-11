@@ -30,6 +30,24 @@ async def test_extract_metadata(public_dns):
 
 
 @pytest.mark.asyncio
+async def test_forum_post_preserves_author_date_and_excludes_other_speakers(public_dns):
+    class HTTP:
+        async def request(self, method, url, **kwargs):
+            body = '''<main><article class="message--post" data-author="Alice">
+              <time datetime="2026-09-02"></time><div class="message-body"><div class="bbWrapper">
+              I keep losing bookings.<blockquote>Bob says: I paid for a booking app.</blockquote>
+              My calendar still overlaps.</div></div></article>
+              <article class="message--post" data-author="Bob"><div class="message-body"><div class="bbWrapper">
+              I built an app that fixes everything.</div></div></article></main>'''
+            return httpx.Response(404 if url.endswith('robots.txt') else 200, text=body,
+                headers={'content-type': 'text/html'}, request=httpx.Request(method, url))
+    source = await Extractor(HTTP()).fetch('https://example.com/threads/bookings')
+    assert source.content == 'I keep losing bookings. My calendar still overlaps.'
+    assert source.author == 'Alice' and source.published_at == '2026-09-02'
+    assert source.content_kind == 'full_text' and source.metadata['speaker_scope'] == 'single_forum_post'
+
+
+@pytest.mark.asyncio
 async def test_robots_denial_and_snippet_fallback(public_dns):
     class HTTP:
         async def request(self, method, url, **kwargs):

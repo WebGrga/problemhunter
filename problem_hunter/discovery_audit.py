@@ -8,6 +8,7 @@ from copy import deepcopy
 from dataclasses import replace
 
 from .discovery import deduplicate, normalize_url
+from .extraction import date_exclusion
 
 
 def _provider(source):
@@ -71,7 +72,9 @@ async def audit_sources(sources, extractor=None, enrich=False):
                 failures.append({"provider": provider, "url": source.url, "stage": "extraction", "error": fetched.metadata.get("extraction_error", "No full content returned")})
             source = fetched
         results.append(source)
-    retained = deduplicate(results)
+    excluded_dates = [{'url': s.url, 'published_at': s.metadata.get('original_published_at'), 'reason': date_exclusion(s)}
+                      for s in results if date_exclusion(s)]
+    retained = deduplicate([s for s in results if not date_exclusion(s)])
     provider_rows = defaultdict(list)
     for source in retained:
         provider_rows[_provider(source)].append(source)
@@ -81,9 +84,10 @@ async def audit_sources(sources, extractor=None, enrich=False):
         "upstream_raw_results": None,
         "upstream_note": "Search/import services may already have deduplicated; provider raw totals require collection instrumentation",
         "invalid_results": len(raw) - len(valid),
-        "duplicates_removed": len(valid) - len(retained),
+        "duplicates_removed": len(valid) - len(retained) - len(excluded_dates),
         "duplicates_before_fetch": len(valid) - before,
-        "duplicates_after_fetch": len(results) - len(retained),
+        "duplicates_after_fetch": len(results) - len(retained) - len(excluded_dates),
+        "excluded_by_original_date": excluded_dates,
         **_counts(retained), "fetch_attempts": attempts, "fetch_successes": successes,
         "fallback_count": fallback, "failures": failures,
         "providers": {p: {"raw_results": raw_counts[p], **_counts(provider_rows[p]),
