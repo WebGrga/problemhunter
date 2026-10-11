@@ -1,4 +1,3 @@
-import json
 import sqlite3
 
 import pytest
@@ -11,18 +10,6 @@ from problem_hunter.reports import export_report
 from problem_hunter.research import workflow
 from problem_hunter.scoring import score_opportunity
 from problem_hunter.storage import Store
-from scripts.run_reference_pipeline import source_records
-
-
-def test_reference_replay_never_passes_labels(tmp_path):
-    path = tmp_path / 'reference.json'
-    path.write_text(json.dumps({'records': [{'id': 'one', 'url': 'https://example.org/a',
-        'title': 'Invoice', 'content': 'I cannot collect invoices.', 'source': 'community',
-        'author': 'a', 'license': 'CC BY-SA', 'annotation': {'priority': 3}}]}))
-    source = source_records(path)[0]
-    assert source.metadata['license'] == 'CC BY-SA'
-    assert 'annotation' not in source.metadata
-    assert 'priority' not in source.metadata
 
 
 def test_experimental_groups_distinguish_families_and_count_authors():

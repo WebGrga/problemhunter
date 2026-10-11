@@ -1,284 +1,82 @@
 # Problem Hunter
 
-Research an already stored opportunity with an explicit task brief, without
-repeating discovery of complaints or their evaluation:
+Problem Hunter collects public discussions, selects source-backed complaints and
+compares existing remedies. It is an experimental research assistant. Fresh tests
+have **not established reliable automatic discovery of useful business opportunities**.
+See [current results](docs/CURRENT_RESULTS.md).
+
+## Run it
+
+Python 3.10+ is required. Install locally and fill in the keys and actual provider
+prices in `.env` using [.env.example](.env.example):
 
 ```sh
-python main.py research OPPORTUNITY_ID --brief examples/solution-brief.json --plan-only --db problem_hunter.db --output reports/solution-plan
-python main.py research OPPORTUNITY_ID --db problem_hunter.db --max-requests 30 --output reports/solution-research
+python3 -m venv .venv
+.venv/bin/pip install -e '.[dev]'
 ```
 
-The first command makes no network calls and saves a reviewable brief and search
-plan. Replace the example with the affected person, task, desired outcome and
-remaining constraint from your selected opportunity. An optional `--workflow`
-overrides the concise search label (at most 12 words). Changing the brief clears
-previous solution results so they cannot be presented as research for the new task.
-The second command uses the saved brief; it requires a Brave key and optionally
-uses JEV to check retrieved excerpts. Request and configured cost limits apply;
-all calls are logged under research, with no complaint acquisition or evaluation.
-
-Briefs search software, services, physical products, process changes and community
-approaches by default. Choose applicable `remedy_types` in the JSON. An optional
-`known_remedies` list (up to four names from the original evidence) searches those
-remedies first and prefers matching provider domains. Retrieval is bounded to six
-pages, or ten when following known remedies. Retrieved sources and named remedies
-retain their separate identities in the report.
-User briefs are explicit interpretations, not automatically verified source facts.
-
-With a TypeSafe key, brief-based research first selects up to three named remedies
-per page, then selects evidence for each fixed identity. A separate check evaluates
-the selected quotes for subject attribution, task fit and the complete remaining
-constraint. Literal function, pricing, limitations, setup, customer complaints and
-adoption excerpts retain their citations. Markdown/JSON include
-consolidated citations and a comparison, with a cautious research disposition.
-Provider usage claims, independent reports, review counts and downloads retain
-their distinct types. Missing information stays unknown. Details and limitations:
-[solution-landscape research](docs/SOLUTION_LANDSCAPE.md).
-
-A Python CLI for discovering recurring real-world problems and ranking evidence-backed
-opportunities. Brave searches broad industries; Hacker News adds attributed discussions.
-URL inspection and scraped CSV imports use the same pipeline. SQLite stores original
-content, judgments, evidence, grouped opportunities, bookmarks, research and usage.
-
-For current discussion-focused collection and the revised experimental actor/task
-review:
+Brave supplies search results; TypeSafe/JEV evaluates bounded source passages.
+Hacker News supplies public discussion records. No per-industry code or question
+edits are required: change the topic and scope. This is the unchanged command used
+for the October 11 mobile-detailing test:
 
 ```sh
-python main.py hunt --topic "client website bug feedback" --scope "Freelance website developers collecting actionable client bug reports" --since 2025-01-01 --until 2026-10-10 --discussions --evaluation-rubric general-v5 --queries 2 --max-sources 12 --audit-yield
+.venv/bin/python main.py hunt \
+  --topic "mobile car detailing appointments" \
+  --scope "Owners and staff of small mobile car detailing businesses scheduling customers and handling cancellations, no-shows and weather disruptions" \
+  --evaluation-rubric general-v5 --since 2025-01-01 --until 2026-10-11 \
+  --discussions --queries 4 --max-sources 20 --research-top 3 --audit-yield \
+  --max-requests 110 --max-cost 0.15 --rate 1 \
+  --db reports/fresh-e2e-2026-10-10/ledger.db \
+  --output reports/mobile-detailing-2026-10-11/results
 ```
 
-Search dates are leads, not proof of original publication or current experience.
-Page publication/modified/search dates are kept separately; short extracted cards
-remain fragments. General-v5 preserves source-selected actor/task/consequence,
-existing remedy and constraint excerpts, removes unlinked commenter workarounds,
-and places primary candidates before material requiring review. It remains opt-in;
-production and the frozen general-v4 rubric are unchanged. The live improvement
-review documents the remaining acquisition and semantic limitations.
+For an independent new corpus, use a separate database and output prefix.
+The application ceiling is per invocation: track cumulative spend across databases
+and retries separately. The recorded test reused the shared budget ledger, which
+contained no stored sources or opportunities before this run.
 
-## Setup
-
-Requires Python 3.10+. Python 3.12 is recommended.
+Collection, extraction, evaluation, grouping, ranking and exports run from that
+command. General solution research currently needs a manually reviewed workflow
+brief; `--research-top` alone cannot complete it for a generic complaint.
+Save a brief with affected person, task, desired outcome and remaining constraint,
+using [the example](examples/solution-brief.json), then run:
 
 ```sh
-python3.12 -m venv .venv
-source .venv/bin/activate
-python -m pip install -e '.[dev]'
-export BRAVE_SEARCH_API_KEY='your-key'
-export TYPESAFE_API_KEY='your-key'
+.venv/bin/python main.py research OPPORTUNITY_ID --brief brief.json --plan-only --db PATH_TO_DB
+.venv/bin/python main.py research OPPORTUNITY_ID --db PATH_TO_DB --max-cost 0.15
 ```
 
-The CLI loads `.env` from the current directory; existing shell variables take precedence.
-Copy [.env.example](.env.example) to `.env` and fill in your keys, or export them as above.
-Never commit credentials. Brave is required for hunts and solution searches; JEV is
-required for normal evaluation. CSV and URL analysis need only JEV. HN needs no key.
+Only define a brief when the supporting evidence justifies it. See
+[solution research](docs/SOLUTION_LANDSCAPE.md) for interpretation and limits.
 
-```sh
-python main.py hunt --topic "restaurants" --queries 25 --top 20 --research-top 5
-python main.py inspect-url "https://example.com/discussion"
-python main.py import-csv results.csv --map content=Review --map url=Link --map author=Username
-python main.py report --db problem_hunter.db --output reports/saved
-python main.py bookmark OPPORTUNITY_ID
-python main.py usage
-```
+## Outputs and limits
 
-`problem-hunter` and `python -m problem_hunter` provide the same commands. Run
-`python main.py hunt --help` for limits and reporting options. Options belong after
-the command. Reports default to `reports/opportunities.md` and `.json`. `--db`,
-`--output`, `--format`, and `--top` control persistence and exports.
+The SQLite database stores evidence, evaluations, opportunities, caches and request
+costs. Markdown is for reading; JSON retains detailed audit records; `--audit-yield`
+adds a run-scoped collection/evaluation/cost funnel. Snippets, missing attribution
+and uncertain publication dates require review. Publication date does not prove a
+complaint remains unsolved today, including after AI adoption.
 
-## Safe demonstration without API credentials
+Investigation priority ranks attention, not business potential. Commercial scores
+are evidence lower bounds; zero with unknown evidence is not evidence of no market.
+Search snippets can mix speakers, remedies and promotion. Exact quotations prevent
+invented text but do not establish correct interpretation.
 
-```sh
-python main.py import-csv examples/restaurants.csv --offline --db demo.db --output reports/demo
-python main.py import-csv examples/restaurants.csv --offline --db demo.db --output reports/demo
-python -m pytest -q
-```
+The default evaluator remains `production`; `general-v5` is the explicitly selected
+current experiment. Frozen `general-v4` remains for compatibility and regressions.
+Historical invoice experiment code and collection scripts have been removed.
 
-The example data is fictional, uses reserved example URLs, and must not be treated
-as market research. `--offline` selects labeled heuristic judgments; it never
-silently replaces JEV. It suppresses model calls, but a hunt or URL inspection still
-retrieves input from the network. The sample yields two opportunity groups from
-three retained reports, with the copied complaint excluded. The repeat evaluates
-zero unchanged sources. All evidence remains weak in this demonstration.
+`inspect-url`, `import-csv`, `report`, `bookmark` and `usage` are also available.
+Run `.venv/bin/python main.py hunt --help` for options. The fictional
+`examples/restaurants.csv` and `--offline` are demonstrations, not live validation.
+A hunt or URL inspection still retrieves input even with `--offline`.
 
-## Evaluation and deeper synthesis
+## Maintenance
 
-The actual JEV questions are now readable/editable files:
-[production](problem_hunter/rubrics/production.json),
-[experiment v1](problem_hunter/rubrics/v1.json),
-[experiment v2](problem_hunter/rubrics/v2.json), and
-[experiment v3](problem_hunter/rubrics/v3.json).
-See [question-file instructions](problem_hunter/rubrics/README.md).
-Preview any set without API calls:
-
-```sh
-python -m problem_hunter.benchmark questions --rubric v2
-```
-
-Every benchmark report saves the exact question/routing snapshots and hashes.
-Use a new version for edits; do not tune frozen questions against their test results.
-
-V3 is an opt-in, invoice-specific experiment, not the default evaluator:
-
-```sh
-python main.py hunt --topic 'freelancer invoicing' --queries 6 --max-sources 24 \
-  --evaluation-rubric v3 --audit-yield --research-top 2
-python -m problem_hunter.benchmark questions --rubric v3
-```
-
-It uses eight typed questions, literal loss/payment checks and contradiction review.
-Reports separate investigation priority from the commercial evidence lower bound.
-`--audit-yield` writes `.yield.json` with extraction, attribution, retained complaints,
-recurring groups and run-scoped collection/evaluation/research costs. Unknown prices
-remain unknown; configure the price variables in `.env.example` for estimates and
-`--max-cost`. Replays are not new acquisition: cache savings must not be mistaken
-for original-run costs. Research uses bounded Brave searches and JEV-selected
-literal provider excerpts when JEV is configured; prices remain unverified context.
-See [v3 test results and limitations](docs/jev-v3-results.md).
-
-For domain-neutral, practical, personal/social and organizational pain-point
-research, use the separate opt-in [general-v4 questions](problem_hunter/rubrics/general-v4.json):
-
-```sh
-python main.py hunt --topic 'restaurant operations' --evaluation-rubric general-v4 --audit-yield
-python main.py import-csv collected.csv --scope 'meeting people' --evaluation-rubric general-v4
-```
-
-Any topic is allowed; invoice wording and family rules are not applied. Exact
-selected passages, original context and review flags remain inspectable. Social
-or emotional burden does not require financial loss. Payment candidates stay
-separate from verified spending; personal distress is not automatically a business
-opportunity or a problem an app should solve. This prototype has not been promoted
-to the default evaluator. See the [ten-case review](docs/PAIN_POINT_REVIEW.md) and
-[cross-domain pilot results](docs/GENERAL_PILOT_RESULTS.md).
-
-The official [TypeSafe API](https://docs.typesafe.ai/api) accepts `state`, `model`
-and a map of typed questions at `POST /v1/systemone`, authenticated with a bearer
-token. This application batches all seven judgments for one source into a supported
-request. Each source has its own state: live testing found that mixing unrelated
-documents can leak payment evidence across them. There is no invented batch endpoint.
-Noul answers measure probability, Score answers use rubric indices, and Choice
-answers identify categories. Raw responses, actual model and batch usage are retained.
-
-Optional deeper extraction, semantic grouping and solution synthesis can use an
-explicit JSON chat-completions provider:
-
-```sh
-export LLM_ENDPOINT='https://your-provider.example/v1/chat/completions'
-export LLM_API_KEY='your-key'
-export LLM_MODEL='your-model'
-```
-
-The provider must support `messages` and `response_format={"type":"json_object"}`.
-Returned source IDs, functional excerpts and evidence quotes are checked against
-the supplied records. Interpretations and suggested fixes remain model inferences
-or hypotheses. Without this configuration, grouping uses conservative vocabulary
-similarity and solution results remain candidates requiring verification.
-
-## Scoring and evidence
-
-The production rubric is intentionally separate from the new experimental JEV
-comparison. A live 40-comment experiment improved triage with concrete Score
-questions but exposed hard-gate false negatives. See
-[results and limitations](docs/jev-evaluation-results.md) before interpreting scores.
-
-The score is an evidence-supported lower bound out of 100:
-
-| Criterion | Maximum points | Evidence used |
-|---|---:|---|
-| Pain severity | 25 | JEV rubric plus a literal loss excerpt |
-| Frequency | 20 | Five distinct attributed complainants fill the scale |
-| Willingness to pay | 20 | Three distinct attributed complainants with explicit payment statements |
-| Existing solution weakness | 15 | Three relevant alternatives with literal weakness excerpts |
-| Customer reachability | 10 | Unknown until independently validated |
-| Implementation feasibility | 10 | Unknown until independently validated |
-
-Unknown criteria contribute zero, and coverage is shown separately. Anonymous
-reports are preserved but do not become identified users. Repeated authors and
-copied content cannot inflate independent counts. Evidence strength is weak or
-moderate based on source quality and recurrence; neither a high score nor model
-confidence proves demand. No opportunity is automatically labeled validated.
-
-## Reliability, budgets and collection policy
-
-Searches are concurrent and bounded. Requests are cached in SQLite for 24 hours,
-with credentials hashed into cache identity; secrets are excluded from request logs.
-Content and evaluation fingerprints avoid repeated evaluation, including rejected
-inputs. HTTP retries cover transient failures and honor bounded Retry-After delays.
-`--max-requests 200`, `--rate 1`, `--max-sources 100` and `--research-top 0` are defaults.
-Retries, robots checks, retrieval and synthesis all count toward the request limit.
-
-Optional `--max-cost` enforces an estimated invocation budget. Configure your plan's
-`BRAVE_COST_PER_REQUEST`, `JEV_COST_PER_MILLION_INPUT_TOKENS`, and, if used,
-`LLM_COST_PER_REQUEST`. Unpriced paid providers are refused when a cost ceiling is
-active. JEV reserves a conservative token allowance before a call and reconciles
-with returned usage. Failed/retried calls are conservatively accounted for. Estimates
-are not invoices; unconfigured prices are reported as unknown, not free. Official
-[JEV model pricing](https://docs.typesafe.ai/models) is available for configuration.
-
-Public-page collection checks robots, honors crawl delays, prohibits private network
-destinations, validates redirects, pins checked DNS addresses, and bounds downloads.
-It fails closed when robots cannot be verified. Authentication, paywalls, CAPTCHAs
-and JavaScript-only content are not bypassed. Users must also respect applicable site
-terms and their Brave plan's retention rights. Snippet fallback is explicitly flagged.
-
-## Testing and limitations
-
-Tests cover mocked Brave/HN/JEV responses, extraction, CSV mapping, deduplication,
-grouping, scoring, SQLite transactions, cache/retry/budget behavior, reports and CLI
-integration. GitHub Actions runs the suite on Python 3.10 and 3.12.
-
-Paid Brave/JEV and optional synthesis require your credentials for live verification.
-The deterministic offline path and mocked contracts do not establish live service
-quality. Default grouping may miss broad paraphrases; only one main problem is
-extracted per source. Whole-page author metadata can be incomplete, prices can be
-stale, and this MVP deliberately leaves unresearched feasibility/reachability at zero.
-Review promising groups, interview independent affected users, and confirm their
-actual workflows, losses, budgets and existing alternatives before building a solution.
-
-See [architecture and boundaries](docs/architecture.md). No dashboard or browser
-extension is included.
-
-## Reproduce the JEV rubric experiment
-
-The benchmark does not modify production evaluations or opportunity scoring.
-Its revised score is complaint investigation priority, not business viability.
-`TYPESAFE_API_KEY` is the only credential needed; HN collection needs no key.
-
-```sh
-python scripts/collect_reference.py
-python scripts/collect_reference.py --freeze
-python -m problem_hunter.benchmark compare reports/jev-benchmark/reference.json \
-  --db reports/jev-benchmark/evaluation.db --output reports/jev-benchmark/comparison \
-  --max-requests 90 --max-cost 0.05
-```
-
-The freeze step applies the reviewed manifest to the captured candidate pool. HN
-search results may change and omit manifest IDs; preserve the original reference
-file rather than assuming a fresh search reproduces it. For new topics, supply
-your own complete, attributed record JSON with pre-output annotations (`relevance`,
-integer `priority` 0–3, `reason`, and `split`: `development` or `holdout`). Never let
-the model being evaluated generate its own reference labels. The wrapper accepts
-`records` with dataset metadata; inspect the collector for the schema.
-
-Reports retain both rankings, errors, source links, supported dimensions, raw
-answers, usage and input/rubric fingerprints. Repeated calls use the 24-hour cache;
-use a different output prefix to preserve the original paid-run accounting.
-The current price assumption is $0.042 per million JEV input tokens; configure
-`JEV_COST_PER_MILLION_INPUT_TOKENS` for your plan. Review the official price before
-a new run. Raw data, reports, SQLite databases and credentials stay Git-ignored.
-
-For the fresh-sample v1-versus-v2 experiment (not production scoring):
-
-```sh
-python -m problem_hunter.benchmark compare reports/jev-benchmark-v2/reference.json \
-  --rubric v2 --reference-rubric v1 --db reports/jev-benchmark-v2/evaluation.db \
-  --output reports/jev-benchmark-v2/comparison --max-requests 90 --max-cost 0.05
-```
-
-Its [pre-output protocol](docs/jev-v2-protocol.md) uses new complete Stack Exchange
-questions, independently labeled by another assistant engineer. The collector
-`scripts/collect_reference_v2.py` retrieves full bodies through the public API and
-can freeze separately supplied annotation JSON; it does not fabricate labels or
-use JEV to label its own benchmark. The frozen artifacts remain local.
-See [fresh test results and remaining failures](docs/jev-v2-results.md).
+Run `.venv/bin/python -m pytest -q`. Tests check implementation and evidence
+handling, not whether the discovered problems are commercially useful.
+Start a continuation with [the handoff](docs/SESSION_HANDOFF.md), then
+[next steps](docs/NEXT_STEPS.md). Old tracked experiments remain in Git history.
+Local raw evidence is retained only where needed for recent audits; it is not
+automatically sent to the evaluation API.

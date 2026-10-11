@@ -6,6 +6,7 @@ an explicitly selected, deterministic demonstration mode.
 import hashlib
 import json
 import logging
+import math
 import re
 
 from .models import Problem
@@ -16,6 +17,20 @@ PRODUCTION_RUBRIC = load_rubric("production")
 FIELDS = {name: q["instructions"] for name, q in PRODUCTION_RUBRIC["questions"].items() if q["type"] == "noul"}
 CATEGORIES = PRODUCTION_RUBRIC["questions"]["category"]["criteria"]
 SEVERITY = PRODUCTION_RUBRIC["questions"]["severity"]["criteria"]
+
+
+def _answer(answers, name, kind, choices=None):
+    """Validate a typed source judgment without importing experiment tooling."""
+    result = answers.get(name)
+    if not isinstance(result, dict) or result.get("type") != kind:
+        raise ValueError(f"Invalid revised answer: {name}")
+    value = result.get(kind)
+    if kind == "choice":
+        if not isinstance(value, str) or value not in choices:
+            raise ValueError(f"Invalid choice: {name}")
+    elif isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or not 0 <= value <= (len(choices) - 1 if kind == "score" else 1):
+        raise ValueError(f"Invalid numeric answer: {name}")
+    return value
 
 
 class SynthesisClient:
