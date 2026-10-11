@@ -94,3 +94,35 @@ context. Removing them cannot fix sparse acquisition or semantic mistakes.
 The next useful improvement is attributable original complaint evidence and
 correct unresolved-problem interpretation, followed by evaluated automation of
 the workflow brief. See `NEXT_STEPS.md`; no additional feature expansion is justified.
+
+## Collection repair follow-up — October 11
+
+The retained change isolates a single post on recognized forum HTML layouts,
+preserving its displayed author/publication date and excluding quoted speakers.
+Known original dates outside the requested window are excluded before model
+evaluation and separately counted in the audit, not counted as duplicates.
+Incomplete recognized post attribution fails extraction rather than merging replies.
+
+A fresh bounded four-query search-diversification trial used the same detailing
+scope, date window, 20-source cap and unchanged general-v5 evaluation questions.
+It returned 20 sources: 19 inaccessible Reddit snippets and one irrelevant HN
+comment. The two forum-focused searches returned no results. One ambiguous snippet
+about a bad booking-platform experience was retained for review, with no identified
+complainant or corroboration. There was no completed remedy comparison. Estimated
+trial cost was $0.024920804. This did not improve usable full-body yield, so the
+search-diversification code was discarded; there is no larger default crawl.
+
+A separate permitted live extraction probe fetched the Auto Geek Online appointment
+thread and Autopia cancellation thread linked in the local probe artifact. Their
+post bodies, authors (RaydiantDetail and MAXSE2kMT), and publication timestamps were
+separated correctly. Both were excluded from the requested 2025–2026 corpus:
+publication years were 2016 and 2009. No model calls evaluated these outdated posts.
+The second probe pass verified the cached extraction; it was not a new collection.
+
+The repair prevents demonstrated attribution/date errors; it does not establish
+better acquisition of current unmet needs. Supported HTML layouts remain limited,
+and unknown dates remain unverified. Current full-post access is still the bottleneck.
+Raw trial database, results, yield audit and probe evidence are in
+`reports/collection-improvement-2026-10-11/`. Shared cumulative estimated spend is
+$0.371592528 of the approved $1; $0.628407472 remains. Probe web requests added no
+estimated cost. 162 implementation tests pass; this is not a usefulness score.

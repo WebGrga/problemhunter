@@ -42,6 +42,21 @@ async def test_enrichment_success_policy_failure_and_postfetch_dedup():
         await audit_sources(inputs, enrich=True)
 
 
+@pytest.mark.asyncio
+async def test_original_date_exclusions_are_not_counted_as_duplicates():
+    source = Source('https://example.com/post', 'Old post', 'Search snippet',
+        content_kind='snippet', published_at='2026-09-01',
+        metadata={'requested_since': '2025-01-01', 'requested_until': '2026-10-11'})
+    class Extractor:
+        async def enrich(self, source):
+            return replace(source, content='Original body', content_kind='full_text',
+                published_at='2014-03-03', metadata={**source.metadata, 'original_published_at': '2014-03-03'})
+    audit = await audit_sources([source], Extractor(), enrich=True)
+    assert not audit['sources']
+    assert len(audit['metrics']['excluded_by_original_date']) == 1
+    assert audit['metrics']['duplicates_removed'] == audit['metrics']['duplicates_after_fetch'] == 0
+
+
 def test_funnel_separates_costs_and_ignores_orphan_problems():
     sources = [Source("https://example.com/a", "", "full", id="a", author="alice"), Source("", "", "imported", id="b", content_kind="imported", metadata={"import_file": "input.csv"})]
     problems = [Problem("a", "pain", "other", id="p1"), Problem("b", "pain2", "other", id="p2"), Problem("missing", "orphan", "other", id="p3")]

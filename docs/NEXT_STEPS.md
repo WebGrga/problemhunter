@@ -23,6 +23,13 @@ No new dashboards, scoring dimensions, providers or large test/doc collections
 until a change improves this measured outcome. Retain tests that protect real
 behavior; remove them when their obsolete feature is removed.
 
-The shared $1 budget has $0.653328276 remaining after October 11. Record incremental
+The shared $1 budget has $0.628407472 remaining after October 11. Record incremental
 cost and enforce the cumulative limit manually across runs. Do not spend further
 merely to produce a more impressive-looking result.
+
+The first collection repair is implemented: single-post extraction on recognized
+forum layouts and original-date exclusion before evaluation. A live broader-search
+trial still found no usable current full discussions, so that search change was
+discarded. The next acquisition work needs a permitted source of current complete
+posts, such as official API access or an authorized export, with attribution and
+dates intact. Do not keep expanding web queries when access is the limiting factor.

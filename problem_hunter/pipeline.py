@@ -31,6 +31,8 @@ class Pipeline:
                 async with semaphore:
                     return await self.extractor.enrich(source)
             sources = deduplicate(await asyncio.gather(*(fetch(s) for s in sources)))
+        from .extraction import date_exclusion
+        sources = [s for s in sources if not date_exclusion(s)]
         incoming_urls = {s.url for s in sources if s.url}
         incoming_content = {content_signature(s.content) for s in sources}
         existing = self.store.load_sources()

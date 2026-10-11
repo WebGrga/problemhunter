@@ -58,6 +58,11 @@ adds a run-scoped collection/evaluation/cost funnel. Snippets, missing attributi
 and uncertain publication dates require review. Publication date does not prove a
 complaint remains unsolved today, including after AI adoption.
 
+Recognized forum layouts yield one visible post with its author and timestamp,
+excluding quoted replies. Known original publication dates outside the requested
+window are dropped before evaluation; the yield audit lists these exclusions.
+This is not universal forum support or proof of current unmet need.
+
 Investigation priority ranks attention, not business potential. Commercial scores
 are evidence lower bounds; zero with unknown evidence is not evidence of no market.
 Search snippets can mix speakers, remedies and promotion. Exact quotations prevent
