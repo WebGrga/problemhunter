@@ -117,6 +117,20 @@ async def test_malformed_selection_fails_without_marking_source_evaluated(tmp_pa
             assert 'evaluation_signature' not in store.load_sources()[0].metadata
 
 
+@pytest.mark.asyncio
+async def test_solution_marker_requires_review_without_claiming_resolution(tmp_path):
+    def handler(request):
+        payload = json.loads(request.content)
+        return httpx.Response(200, json=response(payload['questions']))
+    with Store(tmp_path / 'store.db') as store:
+        async with HTTP(store, rate=0, transport=httpx.MockTransport(handler)) as http:
+            source = Source('', 'Bookings', 'We lose bookings.', metadata={'thread_solution_detected': True})
+            await UniversalEvaluator(http, 'fixture').evaluate([source])
+            triage = source.metadata['triage']
+            assert triage['route'] == 'review' and triage['need_status'] == 'ongoing'
+            assert any('solution marker' in reason for reason in triage['review_reasons'])
+
+
 def test_passages_are_bounded_and_exact_and_scope_changes_fingerprint():
     source = Source('https://example.org/a', 'Long', 'I struggle. ' * 10000)
     state, questions, truncated = build_request(source, 'anything', load_rubric('general-v4'))

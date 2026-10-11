@@ -41,7 +41,7 @@ class Pipeline:
         mode = 'offline' if self.evaluator.offline else self.evaluator.model
         synthesis = [getattr(self.llm, 'endpoint', ''), getattr(self.llm, 'model', '')] if self.llm else None
         def signature(source):
-            return hashlib.sha256(json.dumps([mode, source.title, source.content, source.content_kind, source.author, source.source, synthesis, 'rubric-v3-grounded', getattr(self.evaluator, 'rubric_fingerprint', None)]).encode()).hexdigest()
+            return hashlib.sha256(json.dumps([mode, source.title, source.content, source.content_kind, source.author, source.source, synthesis, 'rubric-v3-grounded', getattr(self.evaluator, 'rubric_fingerprint', None), source.metadata.get('thread_solution_detected', False)]).encode()).hexdigest()
         current = [s for s in sources if s.url in incoming_urls
                    or set(s.metadata.get('duplicate_urls', [])) & incoming_urls
                    or content_signature(s.content) in incoming_content]

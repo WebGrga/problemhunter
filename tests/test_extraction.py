@@ -1,7 +1,8 @@
 import httpx
 import pytest
+from bs4 import BeautifulSoup
 
-from problem_hunter.extraction import Extractor, validate_public_url
+from problem_hunter.extraction import Extractor, validate_public_url, forum_post
 from problem_hunter.models import Source
 
 
@@ -45,6 +46,33 @@ async def test_forum_post_preserves_author_date_and_excludes_other_speakers(publ
     assert source.content == 'I keep losing bookings. My calendar still overlaps.'
     assert source.author == 'Alice' and source.published_at == '2026-09-02'
     assert source.content_kind == 'full_text' and source.metadata['speaker_scope'] == 'single_forum_post'
+
+
+@pytest.mark.parametrize('html,date', [
+    ('<div class="crawler-post"><span itemprop="author"><span itemprop="name">Merchant</span></span><time datetime="2026-06-03"></time><div itemprop="text">Missing bookings.<blockquote>Try my app.</blockquote></div></div>', '2026-06-03'),
+    ('<div class="lia-message-view-display"><a class="lia-user-name-link">Merchant</a><span class="local-date">‎10-15-2025</span><div itemprop="text">Missing bookings.<blockquote>Try my app.</blockquote></div></div>', '2025-10-15'),
+])
+@pytest.mark.asyncio
+async def test_community_layout_keeps_one_attributed_post(html, date, public_dns):
+    reply = '<div class="crawler-post"><div itemprop="text">Unrelated reply</div></div>'
+    assert forum_post(BeautifulSoup(html + reply, 'html.parser')) == ('Missing bookings.', 'Merchant', date)
+    marked = 'lia-message-view-display' in html
+    if marked:
+        html = html.replace('Missing bookings.', 'Missing bookings.<a class="accepted-solution-link">View Solution &gt;</a>')
+    class HTTP:
+        async def request(self, method, url, **kwargs):
+            return httpx.Response(404 if url.endswith('robots.txt') else 200, text=html + reply,
+                headers={'content-type': 'text/html'}, request=httpx.Request(method, url))
+    source = await Extractor(HTTP()).fetch('https://example.com/community')
+    assert source.author == 'Merchant' and source.published_at == date
+    assert source.content_kind == 'full_text' and 'Unrelated reply' not in source.content
+    assert source.metadata.get('thread_solution_detected', False) == marked
+
+
+def test_community_relative_date_is_not_invented():
+    html = '<div class="lia-message-view-display"><a class="lia-user-name-link">Merchant</a><span class="local-date">Tuesday</span><div itemprop="text">Missing bookings.</div></div>'
+    with pytest.raises(ValueError, match='absolute date'):
+        forum_post(BeautifulSoup(html, 'html.parser'))
 
 
 @pytest.mark.asyncio
