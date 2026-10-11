@@ -47,7 +47,7 @@ def parser():
     common.add_argument('--max-cost', type=nonnegative, help='Estimated USD ceiling; requires configured provider prices')
     common.add_argument('--rate', type=nonnegative, default=1.0, help='Minimum seconds between requests per provider')
     common.add_argument('--verbose', action='store_true')
-    common.add_argument('--evaluation-rubric', default='production', help='production (default), invoice v3, or general-v4/general-v5/custom experimental JSON')
+    common.add_argument('--evaluation-rubric', default='production', help='production (default), or general-v4/general-v5/custom universal JSON')
     common.add_argument('--scope', help='Research topic for URL/CSV general-v4; hunts use --topic by default')
     common.add_argument('--audit-yield', action='store_true', help='Export a run-scoped source/complaint/group/cost funnel')
     sub = root.add_subparsers(dest='command', required=True)
@@ -129,10 +129,7 @@ async def run(args):
                             os.environ.get('JEV_MODEL', 'jev-latest'), scope, definition)
                         print(f'Experimental general pain-point triage. Scope: {scope}. Not market validation.', file=sys.stderr)
                     else:
-                        from .triage import ExperimentalEvaluator
-                        evaluator = ExperimentalEvaluator(http, os.environ.get('TYPESAFE_API_KEY', ''),
-                            os.environ.get('JEV_MODEL', 'jev-latest'), definition)
-                        print('Experimental invoice-specific triage; scores are not market validation.', file=sys.stderr)
+                        raise ValueError('Use a universal rubric for experimental evaluation.')
                 researcher = Researcher(discovery, extractor, http=http, llm=llm,
                                         jev_key='' if args.offline else os.environ.get('TYPESAFE_API_KEY', ''),
                                         jev_model=os.environ.get('JEV_MODEL', 'jev-latest'))

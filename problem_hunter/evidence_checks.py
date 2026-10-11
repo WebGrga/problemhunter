@@ -15,35 +15,6 @@ def passages(content):
     return [s.strip() for s in re.split(r"(?<=[.!?])\s+|\n+", content) if s.strip()]
 
 
-def loss_quote(content):
-    for quote in passages(content):
-        if re.search(CONDITIONAL, quote, re.I):
-            continue
-        if not re.search(SELF, quote, re.I):
-            continue
-        if re.search(r"\b(?:wast\w*|los(?:t|ing)|unpaid|underpaid|overdue|short.?paid|haven't been paid|not been paid|not paid|refus\w* to pay|missing invoice|can't find)\b", quote, re.I):
-            return quote
-        if re.search(r"\b(?:spend|spent|takes?|taking)\b.{0,60}\b(?:hours?|minutes?|days?)\b", quote, re.I):
-            return quote
-        if re.search(r"\b(?:I|we)\s+invoice\b.{0,80}[$€£]\s?\d", quote, re.I) and re.search(r"\b(?:send|sent|receive|received|pay|paid)\b.{0,40}[$€£]\s?\d", quote, re.I):
-            return quote
-    return None
-
-
-def support_quotes(content):
-    result = {"pain": loss_quote(content), "workaround_burden": None, "replacement_motivation": None}
-    for quote in passages(content):
-        if re.search(CONDITIONAL, quote, re.I):
-            continue
-        if result["pain"] is None and re.search(SELF, quote, re.I) and re.search(r"\b(?:frustrat\w*|inefficient|tedious|nightmare|trouble|struggl\w*|confus\w*|cannot|can't|difficult|error\w*)\b", quote, re.I):
-            result["pain"] = quote
-        if result["workaround_burden"] is None and re.search(SELF, quote, re.I) and re.search(r"\b(?:manually|spreadsheet\w*|excel|workaround|copy.?past\w*|script\w*|reminder\w*|chasing|hired|hire|tried|trying)\b", quote, re.I):
-            result["workaround_burden"] = quote
-        if result["replacement_motivation"] is None and re.search(r"\b(?:looking for|seeking|I'd like|I would like|I'd love|I want|we want|I need|I tried|I've tried|we tried|switch\w*|alternatives?|better way|what software|what tool|how can I)\b", quote, re.I):
-            result["replacement_motivation"] = quote
-    return result
-
-
 def payment_quote(content, signal):
     if signal == "unknown":
         return None
@@ -70,8 +41,3 @@ def payment_quote(content, signal):
 def ground_payment(content, signal):
     quote = payment_quote(content, signal)
     return {"signal": signal, "quote": quote, "verification": "literal_rule_check", "check_version": CHECK_VERSION} if quote else None
-
-
-def complaint_excerpt(content):
-    quotes = support_quotes(content)
-    return quotes["pain"] or quotes["workaround_burden"] or quotes["replacement_motivation"] or next(iter(passages(content)), content)

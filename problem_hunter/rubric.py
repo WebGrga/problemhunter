@@ -8,8 +8,8 @@ from pathlib import Path
 RUBRIC_DIR = Path(__file__).with_name("rubrics")
 
 
-def load_rubric(name="v1"):
-    path = RUBRIC_DIR / f"{name}.json" if name in {"v1", "v2", "v3", "general-v4", "general-v5", "production"} else Path(name)
+def load_rubric(name="general-v5"):
+    path = RUBRIC_DIR / f"{name}.json" if name in {"general-v4", "general-v5", "production"} else Path(name)
     try:
         rubric = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, ValueError) as exc:
@@ -44,44 +44,35 @@ def validate_rubric(rubric):
             raise ValueError("Production severity requires five levels")
         return
     routing, weights = rubric["routing"], rubric.get("weights")
-    if not isinstance(routing, dict) or routing.get("mode") not in {"hard_v1", "soft_v2", "grounded_v3", "universal_v4"}:
+    if not isinstance(routing, dict) or routing.get("mode") != "universal_v4":
         raise ValueError("Unsupported routing mode")
     if not isinstance(weights, dict) or set(weights) != {"pain", "workaround_burden", "replacement_motivation"} or not all(type(v) in {int, float} and math.isfinite(v) and v > 0 for v in weights.values()):
         raise ValueError("Priority weights must be positive finite numbers for the three dimensions")
     if not math.isclose(sum(weights.values()), 100):
         raise ValueError("Priority weights must total 100 so coverage is a percentage")
-    minimum = 1 if routing["mode"] in {"grounded_v3", "universal_v4"} else 2
-    if routing.get("minimum_supported_dimensions_for_primary_rank") != minimum:
-        raise ValueError(f"This routing mode requires {minimum} supported dimensions")
-    threshold_name = "genuine_threshold" if routing["mode"] == "hard_v1" else "first_hand_review_threshold"
-    threshold = routing.get(threshold_name)
+    if routing.get("minimum_supported_dimensions_for_primary_rank") != 1:
+        raise ValueError("Universal routing requires one supported dimension")
+    threshold = routing.get("first_hand_review_threshold")
     if type(threshold) not in {int, float} or not math.isfinite(threshold) or not 0 <= threshold <= 1:
         raise ValueError("Routing threshold must be between zero and one")
-    expected = {"first_hand", "relevance", "payment_signal"}
-    expected |= set(weights) if routing["mode"] in {"grounded_v3", "universal_v4"} else {n for d in weights for n in (d, d + "_availability")}
-    expected |= {"genuine", "report_kind"} if routing["mode"] == "hard_v1" else {"evidence_kind", "need_status"}
-    if routing['mode'] == 'universal_v4':
-        expected |= {'category', 'problem_excerpt', 'workaround_excerpt', 'payment_excerpt'}
+    expected = set(weights) | {"first_hand", "relevance", "payment_signal", "evidence_kind", "need_status",
+                               "category", "problem_excerpt", "workaround_excerpt", "payment_excerpt"}
     if set(questions) != expected:
         raise ValueError("Question IDs must match the selected routing mode")
     for name in expected:
-        kind = "score" if name in weights else "noul" if name in {"first_hand", "genuine"} else "choice"
+        kind = "score" if name in weights else "noul" if name == "first_hand" else "choice"
         if questions[name]["type"] != kind:
             raise ValueError(f"Unexpected type for {name}")
     options = {"relevance": {"yes", "adjacent", "no"},
                "payment_signal": {"unknown", "explicit_refusal", "spending_workaround", "explicit_intent", "paid_solution"},
-               **({d + "_availability": {"known", "unknown"} for d in weights} if routing["mode"] not in {"grounded_v3", "universal_v4"} else {})}
-    if routing["mode"] == "hard_v1":
-        options["report_kind"] = {"experienced_problem", "advice_or_promotion", "no_problem_or_hypothetical"}
-    else:
-        options.update(evidence_kind={"experienced_burden", "experienced_workaround", "satisfied_low_burden", "promotion_or_general", "unclear"}, need_status={"ongoing", "historical_resolved", "mixed", "unknown"})
+               "evidence_kind": {"experienced_burden", "experienced_workaround", "satisfied_low_burden", "promotion_or_general", "unclear"},
+               "need_status": {"ongoing", "historical_resolved", "mixed", "unknown"}}
     for name, values in options.items():
         if set(questions[name]["criteria"]) != values:
             raise ValueError(f"Unsupported options for {name}; edit descriptions, not option IDs")
-    if routing['mode'] == 'universal_v4':
-        for name in ('problem_excerpt', 'workaround_excerpt', 'payment_excerpt'):
-            if set(questions[name]['criteria']) != {'none', 'passage'}:
-                raise ValueError(f'{name} requires none/passage template options; actual IDs are supplied at runtime')
+    for name in ('problem_excerpt', 'workaround_excerpt', 'payment_excerpt'):
+        if set(questions[name]['criteria']) != {'none', 'passage'}:
+            raise ValueError(f'{name} requires none/passage template options; actual IDs are supplied at runtime')
 
 
 def snapshot(rubric):
@@ -91,18 +82,3 @@ def snapshot(rubric):
 
 def rubric_hash(rubric):
     return hashlib.sha256(json.dumps(rubric, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
-
-
-def readable_rubric(rubric):
-    lines = [f"# JEV questions: {rubric['version']}", "", rubric.get("description", ""), "",
-             f"Definition SHA256: {rubric_hash(rubric)}", ""]
-    if "routing" in rubric:
-        lines += ["## Ranking rules", "", "```json", json.dumps({"weights": rubric["weights"], "routing": rubric["routing"]}, indent=2), "```", ""]
-    for name, question in rubric["questions"].items():
-        lines += [f"## {name} ({question['type']})", "", question["instructions"], ""]
-        criteria = question.get("criteria")
-        if isinstance(criteria, list):
-            lines += [f"- Level {i}: {v}" for i, v in enumerate(criteria)] + [""]
-        elif isinstance(criteria, dict):
-            lines += [f"- {k}: {v}" for k, v in criteria.items()] + [""]
-    return "\n".join(lines)

@@ -7,7 +7,7 @@ import hashlib
 import json
 import math
 
-from .benchmark import _answer
+from .intelligence import _answer
 from .evidence_checks import passages
 from .models import Problem
 from .rubric import load_rubric, rubric_hash, snapshot

@@ -181,10 +181,3 @@ def test_cli_general_csv_scope_uses_universal_evaluator(tmp_path, monkeypatch):
     assert calls == ['accessible social participation']
     report = json.loads((tmp_path / 'report.json').read_text())
     assert report['opportunities'][0]['category'] == 'social_relationships'
-
-
-@pytest.mark.asyncio
-async def test_invoice_comparator_refuses_universal_before_requests():
-    from problem_hunter.benchmark import compare
-    with pytest.raises(ValueError, match='invoice comparator'):
-        await compare([], None, 'fixture', rubric=load_rubric('general-v4'))
